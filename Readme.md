@@ -12,20 +12,30 @@ two initialization tags: port, which is the name of the serial port to use for c
 to the debug port, and labels, which is the path to the 64TASS LBL file for this project.
 Both settings can be over-ridden by command line options.
 
+To get the revision code of the C256's debug port:
+`c256mgr --port <port> --revision`
+
 To send a hex file:
-`c256mgr -p <port> -s <hexfile>`
+`c256mgr --port <port> --upload <hexfile>`
+
+To send a binary file to a location in C256 RAM:
+`c256mgr --port <port> --binary <binary file> --address <address in hex>`
+
+To reflash the C256 flash memory (NOTE: the binary file must be 512KB in size, and the address
+is used as a temporary location in C256 RAM to store the data to be flashed):
+`c256mgr --port <port> --flash <binary file> --address <address in hex>`
 
 To display memory:
-`c256mgr -p <port> -a <address in hex> -c <count of bytes in hex>`
+`c256mgr --port <port> --dump <address in hex> --count <count of bytes in hex>`
 
 If you have a 64TASS label file (*.lbl), you can provide that as an option
 and display the contents of a memory location by its label:
-`c256mgr -p <port> -l <label file> -v <label> -c <count of bytes in hex>`
+`c256mgr --port <port> --label-file <label file> --lookup <label> --count <count of bytes in hex>`
 
 If you have a 64TASS label file (*.lbl), you can provide that as an option
 and display the contents of a memory location by deferencing the pointer
 at a location in the label file:
-`c256mgr -p <port> -l <label file> -d <label> -c <count of bytes in hex>`
+`c256mgr --port <port> --label-file <label file> --deref <label> --count <count of bytes in hex>`
 
 The count of bytes is optional and defaults to 16.
 
