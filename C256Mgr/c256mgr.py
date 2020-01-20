@@ -52,8 +52,12 @@ def upload_binary(port, filename, address):
         finally:
             c256.close()
 
-def program_flash(port, filename, address):
+def program_flash(port, filename, hex_address):
     """Program the flash memory using the contents of the C256's RAM."""
+
+    base_address = int(hex_address, 16)
+    address = base_address
+    print("About to upload image to address 0x{:X}".format(address), flush=True)
 
     if os.path.getsize(filename) == FLASH_SIZE:
         if confirm("Are you sure you want to reprogram the flash memory? (y/n): "):
@@ -69,8 +73,11 @@ def program_flash(port, filename, address):
                             address += len(block)
                             block = f.read(CHUNK_SIZE)
 
+                        print("Binary file uploaded...", flush=True)
                         c256.erase_flash()
-                        c256.program_flash(address)
+                        print("Flash memory erased...", flush=True)
+                        c256.program_flash(base_address)
+                        print("Flash memory programmed...")
                     finally:
                         c256.exit_debug()
                 finally:
