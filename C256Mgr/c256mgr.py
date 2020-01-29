@@ -27,7 +27,7 @@ def revision(port):
         c256.enter_debug()
         try:
             data = c256.get_revision()
-            return "%X" % data[0]
+            return "%X" % data
         finally:
             c256.exit_debug()
     finally:

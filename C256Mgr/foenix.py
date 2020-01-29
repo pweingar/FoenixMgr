@@ -13,8 +13,8 @@ class FoenixDebugPort:
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
-            timeout=2000,
-            write_timeout=2000)
+            timeout=60,
+            write_timeout=60)
         try:
             self.connection.open()
         except:
@@ -45,7 +45,8 @@ class FoenixDebugPort:
     def get_revision(self):
         """Gets the revision code for the debug interface.
         RevB2's revision code is 0, RevC4A is 1."""
-        return self.transfer(0xFE, 0, 0, 1)
+        self.transfer(0xFE, 0, 0, 0)
+        return self.status1
 
     def program_flash(self, address):
         """Send the command to have the C256 Foenix reprogram its flash memory.
