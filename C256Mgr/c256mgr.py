@@ -6,6 +6,8 @@ import sys
 import argparse
 import os
 
+from serial.tools import list_ports
+
 FLASH_SIZE = 524288     # Required size of flash file: 512 KB
 CHUNK_SIZE = 4096       # Size of block of binary data to transfer
 
@@ -14,7 +16,7 @@ to_send = ""
 port = ""
 start_address = ""
 count = ""
-label=""
+label = ""
 
 def confirm(question):
     return input(question).lower().strip()[:1] == "y"
@@ -174,12 +176,29 @@ def get(port, address, length):
     finally:
         c256.close()
 
+def list_serial_ports():
+    serial_ports = list_ports.comports()
+
+    if len(serial_ports) == 0:
+        print("No serial ports found")
+
+    for serial_port in serial_ports:
+        print(f"{serial_port.device}")
+        print(f"   Description: {serial_port.description}")
+        print(f"   Manufacturer: {serial_port.manufacturer}")
+        print(f"   Product: {serial_port.product}")
+        print()
+
+
 config = configparser.ConfigParser()
 config.read('c256.ini')
 
 parser = argparse.ArgumentParser(description='Manage the C256 Foenix through its debug port.')
 parser.add_argument("--port", dest="port", default=config['DEFAULT'].get('port', 'COM3'),
                     help="Specify the serial port to use to access the C256 debug port.")
+
+parser.add_argument("--list-ports", dest="list_ports", action="store_true",
+                    help="List available serial ports.")
 
 parser.add_argument("--label-file", dest="label_file", default=config['DEFAULT'].get('labels', 'basic8'),
                     help="Specify the label file to use for dereference and lookup")
@@ -209,7 +228,7 @@ parser.add_argument("--address", metavar="ADDRESS", dest="address",
                     help="Provide the starting address of the memory block to use in flashing memory.")
 
 parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
-                    help="Attempt to reprogram the flash using the binary file provided.")                    
+                    help="Attempt to reprogram the flash using the binary file provided.")
 
 options = parser.parse_args()
 
@@ -238,6 +257,9 @@ try:
 
         elif options.address and options.flash_file:
             program_flash(options.port, options.flash_file, options.address)
+
+        elif options.list_ports:
+            list_serial_ports()
 
         else:
             parser.print_help()
