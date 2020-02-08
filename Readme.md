@@ -20,6 +20,9 @@ All three settings can be over-ridden by command line options.
 
 ## Command Line Arguments
 
+To list the available serial ports on your computer:
+`c256mgr --list-ports`
+
 To get the revision code of the C256's debug port:
 `c256mgr --port <port> --revision`
 
@@ -60,6 +63,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --port PORT           Specify the serial port to use to access the C256     
                         debug port.
+  --list-ports          List available serial ports.
   --label-file LABEL_FILE
                         Specify the label file to use for dereference and
                         lookup
