@@ -178,6 +178,10 @@ def get(port, address, length):
 
 def list_serial_ports():
     serial_ports = list_ports.comports()
+
+    if len(serial_ports) == 0:
+        print("No serial ports found")
+
     for serial_port in serial_ports:
         print(f"{serial_port.device}")
         print(f"   Description: {serial_port.description}")
