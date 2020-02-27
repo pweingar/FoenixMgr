@@ -1,4 +1,5 @@
 import intelhex
+import wdc
 import foenix
 import configparser
 import re
@@ -141,6 +142,26 @@ def display(base_address, data):
         
     sys.stdout.write(' {}\n'.format(text_buff))
 
+def send_wdc(port, filename):
+    """Send the data in the hex file 'filename' to the C256 on the given serial port."""
+    infile = wdc.WdcBinFile()
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        infile.open(filename)
+        try:
+            infile.set_handler(lambda address, data: c256.write_block(address, data))
+            c256.enter_debug()
+            try:
+                # Process the lines in the hex file
+                infile.read_blocks()
+            finally:
+                c256.exit_debug()
+        finally:
+            infile.close()
+    finally:
+        c256.close() 
+
 def send(port, filename):
     """Send the data in the hex file 'filename' to the C256 on the given serial port."""
     infile = intelhex.HexFile()
@@ -230,12 +251,18 @@ parser.add_argument("--address", metavar="ADDRESS", dest="address",
 parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
                     help="Attempt to reprogram the flash using the binary file provided.")
 
+parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
+                    help="Attempt to reprogram the flash using a WDCTools binary hex file. (WDCLN.EXE -HZ)")
+
 options = parser.parse_args()
 
 try:
     if options.port != "":
         if options.hex_file:
-            send(options.port, options.upload_file)
+            send(options.port, options.hex_file)
+
+        elif options.wdc_file:
+            send_wdc(options.port, options.wdc_file)
 
         elif options.deref_name and options.label_file:
             address = dereference(options.port, options.label_file, options.deref_name)
