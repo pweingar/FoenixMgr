@@ -252,7 +252,7 @@ parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
                     help="Attempt to reprogram the flash using the binary file provided.")
 
 parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
-                    help="Attempt to reprogram the flash using a WDCTools binary hex file. (WDCLN.EXE -HZ)")
+                    help="Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)")
 
 options = parser.parse_args()
 
@@ -268,8 +268,8 @@ try:
             address = dereference(options.port, options.label_file, options.deref_name)
             get(options.port, address, options.count)
 
-        elif options.deref_name and options.label_file:
-            address = lookup(options.label_file, options.deref_name)
+        elif options.lookup_name and options.label_file:
+            address = lookup(options.label_file, options.lookup_name)
             get(options.port, address, options.count)
 
         elif options.dump_address:

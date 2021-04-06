@@ -34,7 +34,6 @@ class HexFile:
         code = int(m.group(3), 16)
         data = m.group(4)
         crc = int(m.group(5), 16)
-
         if code == 0:
             if self.handler:
                 # print('Sending record to {:X}'.format(self.base_address + address))
@@ -42,7 +41,7 @@ class HexFile:
 
         elif code == 2:
             # Set the base address based on a segment
-            self.base_address = address << 4
+            self.base_address = int(data, 16) << 4 # shity 80x86 real mode addressing : take the address an do *16 to get the final address
             # print('Setting base address to {:X}'.format(self.base_address))
 
         elif code == 4:
