@@ -1,6 +1,7 @@
 import intelhex
 import wdc
 import foenix
+import srec
 import configparser
 import re
 import sys
@@ -162,6 +163,26 @@ def send_wdc(port, filename):
     finally:
         c256.close() 
 
+def send_srec(port, filename):
+    """Send the data in the SREC hex file 'filename' to the C256 on the given serial port."""
+    infile = srec.SRECFile()
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        infile.open(filename)
+        try:
+            infile.set_handler(lambda address, data: c256.write_block(address, bytes.fromhex(data)))
+            c256.enter_debug()
+            try:
+                # Process the lines in the hex file
+                infile.read_lines()
+            finally:
+                c256.exit_debug()
+        finally:
+            infile.close()
+    finally:
+        c256.close()
+
 def send(port, filename):
     """Send the data in the hex file 'filename' to the C256 on the given serial port."""
     infile = intelhex.HexFile()
@@ -254,6 +275,9 @@ parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
 parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
                     help="Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)")
 
+parser.add_argument("--upload-srec", metavar="SREC FILE", dest="srec_file",
+                    help="Upload a Motorola SREC hex file.")
+
 options = parser.parse_args()
 
 try:
@@ -263,6 +287,9 @@ try:
 
         elif options.wdc_file:
             send_wdc(options.port, options.wdc_file)
+
+        elif options.srec_file:
+            send_srec(options.port, options.srec_file)
 
         elif options.deref_name and options.label_file:
             address = dereference(options.port, options.label_file, options.deref_name)
