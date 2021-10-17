@@ -1,25 +1,16 @@
+from abc import ABC, abstractmethod
 import serial
 
 class FoenixDebugPort:
     """Provide the conneciton to a C256 Foenix debug port."""
-    connection = 0
+    connection = None
     status0 = 0
     status1 = 0
 
     def open(self, port):
         """Open a connection to the C256 Foenix."""
-        self.connection = serial.Serial(port=port,
-            baudrate=6000000,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=60,
-            write_timeout=60)
-        try:
-            self.connection.open()
-        except:
-            self.connection.close()
-            self.connection.open()
+        self.connection = SerialFoenixConnection()
+        self.connection.open(port=port)
 
     def is_open(self):
         return self.connection.is_open()
@@ -84,9 +75,9 @@ class FoenixDebugPort:
         # else:
         #     print('Writing data of length {:X} to {:X}'.format(length, address))        
 
-        command_bytes = command.to_bytes(1, 'big')
-        address_bytes = address.to_bytes(3, 'big')
-        length_bytes = length.to_bytes(2, 'big')
+        command_bytes = command.to_bytes(1, byteorder='big')
+        address_bytes = address.to_bytes(3, byteorder='big')
+        length_bytes = length.to_bytes(2, byteorder='big')
 
         header = bytearray(7)
         header[0] = 0x55
@@ -104,7 +95,7 @@ class FoenixDebugPort:
             for i in range(0, length):
                 lrc = lrc ^ data[i]
 
-        lrc_bytes = lrc.to_bytes(1, 'big')
+        lrc_bytes = lrc.to_bytes(1, byteorder='big')
 
         if data:
             packet = header + data + lrc_bytes
@@ -138,3 +129,56 @@ class FoenixDebugPort:
         # print("Status: {:X}, {:X}".format(self.status0, self.status1))
         
         return read_bytes
+
+
+class FoenixConnection(ABC):
+    @abstractmethod
+    def open(self, port):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass
+
+    @abstractmethod
+    def is_open(self):
+        pass
+
+    @abstractmethod
+    def read(self, numbytes):
+        pass
+
+    @abstractmethod
+    def write(self, data):
+        pass
+
+
+class SerialFoenixConnection(FoenixConnection):
+    """ Connects to Foenix via local serial port """
+    serial_port = None
+
+    def open(self, port):
+        self.serial_port = serial.Serial(port=port,
+            baudrate=6000000,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=60,
+            write_timeout=60)
+        try:
+            self.serial_port.open()
+        except:
+            self.serial_port.close()
+            self.serial_port.open()
+
+    def close(self):
+        self.serial_port.close()
+
+    def is_open(self):
+        return self.serial_port.is_open()
+
+    def read(self, numbytes):
+        return self.serial_port.read(numbytes)
+
+    def write(self, data):
+        return self.serial_port.write(data)
