@@ -61,7 +61,7 @@ Manage the C256 Foenix through its debug port.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --port PORT           Specify the serial port to use to access the C256     
+  --port PORT           Specify the serial port to use to access the C256
                         debug port.
   --list-ports          List available serial ports.
   --label-file LABEL_FILE
@@ -79,8 +79,16 @@ optional arguments:
   --binary BINARY FILE  Upload a binary file to the C256's RAM.
   --address ADDRESS     Provide the starting address of the memory block to
                         use in flashing memory.
-  --upload HEX_FILE     Attempt to reprogram the flash using the binary file
+  --upload HEX FILE     Attempt to reprogram the flash using the binary file
                         provided.
+  --upload-wdc BINARY FILE
+                        Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)
+  --upload-srec SREC FILE
+                        Upload a Motorola SREC hex file.
+  --tcp-bridge HOST:PORT
+                        Setup a TCP-serial bridge, listening on HOST:PORT
+                        and relaying messages to the Foenix via the
+                        configured serial port
 ```
 
 ## Batch Files
@@ -111,3 +119,80 @@ This package includes four DOS batch files to help automate using the tool:
   the address provided (or the default address from the INI file). The
   existing flash data is erased and replaced by the data in the BIN file. 
   The script will ask for confirmation before begining the process.
+
+## TCP Bridge Mode
+C256Mgr can also be configured to act as a TCP-to-serial bridge,
+allowing remote clients on your network to use the debug port without
+being physically connected to the Foenix. This can be useful if you want to
+undock your laptop. It's also the only solution available for Mac users,
+since the driver for the MaxLinear/Exar I/O chip has not been updated for
+more recent versions of macOS.
+
+To run the C256Mgr in TCP bridge mode, use these two options:
+
+* `--tcp-bridge`: Set this to the host and port you want to listen on,
+  for example, `192.168.1.114:2650`. Note that you should not listen on
+  the loopback interface (`127.0.0.1`), as that would not work for remote
+  client connections.
+
+* `--port`: Set this to the serial port of the Foenix, like you would when
+  communicating directly.
+
+### Running on a Raspberry Pi
+It can be handy to use a Raspberry Pi as the TCP bridge. However, getting
+one setup for this function requires a bit of work. Here are some notes that
+might help you in this situation:
+
+1. Remove the existing CDC-ACM serial driver
+   ```
+   sudo rmmod cdc-acm
+   modprobe -r usbserial
+   sudo modprobe usbserial
+   ```
+
+2. Block the CDC-ACM driver from loading again
+   ```
+   sudo bash -c "echo blacklist cdc-acm > /etc/modprobe.d/blacklist-cdc-acm.conf"
+   sudo update-initramfs -u
+   ```
+
+3. Install kernel headers so the driver can be compiled:
+   ```
+   sudo apt install raspberrypi-kernel-headers
+   ````
+
+4. Install the Dynamic Kernel Module Support to build and install the Exar driver:
+   ```
+   sudo apt-get install dkms
+   ```
+
+5. Download the driver code - official driver releases from MaxLinear (owners
+   of Exar) are [here](https://www.maxlinear.com/support/design-tools/software-drivers).
+
+6. Unzip the driver zip file and add a file inside that directory named `dkms.conf` with
+   the following contents (note the version of the driver is `1d` to reflect the most
+   recent version from Exar):
+   ```
+   MAKE="make -C ./ KERNELDIR=/lib/modules/${kernelver}/build"
+   CLEAN="make -C ./ clean"
+   BUILT_MODULE_NAME=xr_usb_serial_common
+   BUILT_MODULE_LOCATION=./
+   DEST_MODULE_LOCATION=/kernel/drivers/usb/serial
+   PACKAGE_NAME=xr_usb_serial_common
+   PACKAGE_VERSION=1d
+   REMAKE_INITRD=yes
+   ```
+
+7. Create a directory for the driver source and config where DKMS will look for it (`1d`
+   appears here again):
+   ```
+   sudo mkdir /usr/src/xr_usb_serial_common-1d
+   sudo cp * /usr/src/xr_usb_serial_common-1d/
+   ```
+
+8. Finally, use DKMS to build and install the driver:
+   ```
+   sudo dkms add -m xr_usb_serial_common -v 1d
+   sudo dkms build -m xr_usb_serial_common -v 1d
+   sudo dkms install -m xr_usb_serial_common -v 1d
+   ```
