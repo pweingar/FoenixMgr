@@ -168,6 +168,7 @@ might help you in this situation:
 
 5. Download the driver code - official driver releases from MaxLinear (owners
    of Exar) are [here](https://www.maxlinear.com/support/design-tools/software-drivers).
+   You'll want the USB UART driver for XR21B1411 for Linux. The current version is 1D.
 
 6. Unzip the driver zip file and add a file inside that directory named `dkms.conf` with
    the following contents (note the version of the driver is `1d` to reflect the most
