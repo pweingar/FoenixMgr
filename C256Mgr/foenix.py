@@ -203,9 +203,9 @@ class SocketFoenixConnection(FoenixConnection):
         tcp_host = parsed_host_port[0]
         tcp_port = int(parsed_host_port[1]) if len(parsed_host_port) > 0 else 2560
 
-        print("Connecting to {}:{}".format(tcp_host, tcp_port))
+        print("Connecting to remote Foenix at {}:{}...".format(tcp_host, tcp_port), end="")
         self.tcp_socket.connect(tuple([tcp_host, tcp_port]))
-        print("Connected")
+        print(" ✓")
         self._is_open = True
 
     def close(self):
@@ -216,15 +216,11 @@ class SocketFoenixConnection(FoenixConnection):
         return self._is_open
 
     def read(self, num_bytes):
-        print("Reading {} bytes".format(num_bytes))
         bytes_read = self.tcp_socket.recv(num_bytes)
-        print("Got bytes: {}".format(bytes_read))
         return bytes_read
 
     def write(self, data):
-        print("Writing bytes: {}".format(data))
         self.tcp_socket.sendall(data)
-        print("Bytes written")
         return len(data)
 
 
@@ -236,77 +232,58 @@ class FoenixTcpBridge():
         self.serial_port = serial_port
 
     def recv_bytes(self, num_bytes):
-        print("Reading until we receive {} bytes from TCP client".format(num_bytes))
         total_bytes_received = self.tcp_connection.recv(num_bytes)
-        if not total_bytes_received:
-            # Client hung up
+        if not total_bytes_received: # Client hung up
             return total_bytes_received
         total_bytes_received = bytearray(total_bytes_received)
-        print("Read {} bytes".format(len(total_bytes_received)))
         while len(total_bytes_received) < num_bytes:
             bytes_received = self.tcp_connection.recv(num_bytes - len(total_bytes_received))
-            print("Read {} bytes".format(len(bytes_received)))
             total_bytes_received.extend(bytes_received)
 
-        print("Limit of {} bytes reached for this read".format(len(total_bytes_received)))
         return bytes(total_bytes_received)
 
 
     def listen(self):
         """ Listen for TCP socket connections and relay messages to Foenix via serial port """
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: # AF_INET=IPv4, SOCK_STREAM=TCP
-            while True:
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: # AF_INET=IPv4, SOCK_STREAM=TCP
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 s.bind((self.tcp_host, self.tcp_port))
                 s.listen()
                 print("Listening for connections to {} on port {}".format(self.tcp_host, self.tcp_port))
 
                 self.tcp_connection, tcp_address = s.accept()
-                print("Received TCP socket connection from {}".format(tcp_address))
+                print("Received connection from {}".format(tcp_address[0]))
                 with self.tcp_connection:
-                    print("Initiating connection to Foenix debug port on {}".format(self.serial_port))
-                    with serial.Serial(port=self.serial_port, baudrate=6000000, timeout=60,
-                                       write_timeout=60) as serial_connection:
-                        print("Connected to Foenix debug port")
-                        while True:
-                            # First get the 7-byte request header
-                            print("Waiting for request from TCP client")
+                    while True:
+                        # First get the 7-byte request header
+                        header = self.recv_bytes(7)
+                        if not header:
+                            print("Connection from {} closed".format(tcp_address[0]))
+                            break
 
-                            header = self.recv_bytes(7)
-                            if not header:
-                                print("Connection from {} closed".format(tcp_address))
-                                break
-                            print("Got 7-byte header from TCP client: {}".format(header))
-                            print("  Sync byte: 0x{:02x}".format(header[0]))
-                            print("  Command: 0x{:02x}".format(header[1]))
-                            print("  Address: 0x{:02x} 0x{:02x} 0x{:02x}".format(header[2], header[3], header[4]))
-                            print("  Data length: 0x{:02x} 0x{:02x}".format(header[5], header[6]))
+                        command = header[1]
 
-                            command = header[1]
+                        # The data size comes from bytes 5 and 6 in the header
+                        data_length = int.from_bytes(header[5:7], byteorder="big")
 
-                            # The data size comes from bytes 5 and 6 in the header
-                            data_length = int.from_bytes(header[5:7], byteorder="big")
-                            print("    - Data length converted to int is {}".format(data_length))
+                        # The data payload only comes along with a write command
+                        data = None
+                        if command == constants.CMD_WRITE_MEM:
+                            data = self.recv_bytes(data_length)
 
-                            # The data payload only comes along with a write command
-                            data = None
-                            if command == constants.CMD_WRITE_MEM:
-                                print("Reading data payload from TCP client since we received a write memory command")
-                                data = self.recv_bytes(data_length)
+                        # The LRC byte is required and denotes the end of the request
+                        request_lrc_byte = self.recv_bytes(1)
 
-                            # The LRC byte is required and denotes the end of the request
-                            print("Reading LRC checksum byte from TCP client")
-                            request_lrc_byte = self.recv_bytes(1)
-                            print("  LRC checksum: 0x{:02x}".format(request_lrc_byte[0]))
-                            print("Request from TCP client is complete")
+                        # TCP request is now complete, time to pass along to Foenix
+                        bytes_to_write = bytearray(header)
+                        if data is not None:
+                            bytes_to_write.extend(data)
+                        bytes_to_write.extend(request_lrc_byte)
 
-                            # TCP request is now complete, time to pass along to Foenix
-                            bytes_to_write = bytearray(header)
-                            if data is not None:
-                                bytes_to_write.extend(data)
-                            bytes_to_write.extend(request_lrc_byte)
-                            print("Sending request to Foenix serial port: {}".format(bytes_to_write))
+                        with serial.Serial(port=self.serial_port, baudrate=6000000, timeout=60,
+                                        write_timeout=60) as serial_connection:
                             num_bytes_written = serial_connection.write(bytes_to_write)
-                            print("Sent {} bytes".format(num_bytes_written))
 
                             # Probably should handle this situation a bit more elegantly
                             if num_bytes_written != len(bytes_to_write):
@@ -315,36 +292,24 @@ class FoenixTcpBridge():
 
                             # Read until we get the start of the response
                             # TODO: do we really need to read more than 1 byte here?
-                            print("Waiting for response from Foenix debug port")
                             response_sync_byte = serial_connection.read(1)
-                            print("  Got response sync byte: {}".format(response_sync_byte))
 
                             # Next two bytes are the status bytes
                             response_status_bytes = serial_connection.read(2)
-                            print("  Got status bytes: {}".format(response_status_bytes))
 
                             # Read the data payload if requested
                             response_data = None
                             if command == constants.CMD_READ_MEM and data_length > 0:
-                                response_data = self.connection.read(data_length)
-                                print("  Got response data payload: {}".format(response_data))
+                                response_data = serial_connection.read(data_length)
 
                             response_lrc_byte = serial_connection.read(1)
-                            print("  Got response LRC checksum byte: {}".format(response_lrc_byte))
 
                             # Construct the response
-                            print("Building the TCP client response from Foenix reponse")
                             response = bytearray(response_sync_byte)
-                            print("Added response sync byte: {}".format(response))
                             response.extend(response_status_bytes)
-                            print("Added status bytes: {}".format(response))
                             if response_data is not None:
                                 response.extend(response_data)
-                                print("Added data payload: {}".format(response))
                             response.extend(response_lrc_byte)
-                            print("Added LRC checksum byte: {}".format(response))
 
                             # Return the response back to the TCP client
-                            print("Sending response back to TCP client")
                             self.tcp_connection.sendall(response)
-                            print("Response sent")
