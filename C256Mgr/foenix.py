@@ -291,7 +291,6 @@ class FoenixTcpBridge():
                                     .format(len(bytes_to_write), num_bytes_written))
 
                             # Read until we get the start of the response
-                            # TODO: do we really need to read more than 1 byte here?
                             response_sync_byte = serial_connection.read(1)
 
                             # Next two bytes are the status bytes
