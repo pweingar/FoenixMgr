@@ -1,25 +1,24 @@
+from abc import ABC, abstractmethod
 import serial
+import socket
+import constants
 
 class FoenixDebugPort:
-    """Provide the conneciton to a C256 Foenix debug port."""
-    connection = 0
+    """Provide the connection to a C256 Foenix debug port."""
+    connection = None
     status0 = 0
     status1 = 0
 
     def open(self, port):
         """Open a connection to the C256 Foenix."""
-        self.connection = serial.Serial(port=port,
-            baudrate=6000000,
-            bytesize=serial.EIGHTBITS,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            timeout=60,
-            write_timeout=60)
-        try:
-            self.connection.open()
-        except:
-            self.connection.close()
-            self.connection.open()
+        if ':' in port:
+            # A pretty weak test, looking for something like '192.168.1.114:2560'
+            self.connection = SocketFoenixConnection()
+        else:
+            # Otherwise assume it's a serial connection
+            self.connection = SerialFoenixConnection()
+
+        self.connection.open(port=port)
 
     def is_open(self):
         return self.connection.is_open()
@@ -30,36 +29,36 @@ class FoenixDebugPort:
 
     def enter_debug(self):
         """Send the command to make the C256 Foenix enter its debug mode."""
-        self.transfer(0x80, 0, 0, 0)
+        self.transfer(constants.CMD_ENTER_DEBUG, 0, 0, 0)
 
     def exit_debug(self):
         """Send the command to make the C256 Foenix leave its debug mode.
         This will make the C256 reset.
         """
-        self.transfer(0x81, 0, 0, 0)
+        self.transfer(constants.CMD_EXIT_DEBUG, 0, 0, 0)
 
     def erase_flash(self):
         """Send the command to have the C256 Foenix erase its flash memory."""
-        self.transfer(0x11, 0, 0, 0)
+        self.transfer(constants.CMD_ERASE_FLASH, 0, 0, 0)
 
     def get_revision(self):
         """Gets the revision code for the debug interface.
         RevB2's revision code is 0, RevC4A is 1."""
-        self.transfer(0xFE, 0, 0, 0)
+        self.transfer(constants.CMD_REVISION, 0, 0, 0)
         return self.status1
 
     def program_flash(self, address):
         """Send the command to have the C256 Foenix reprogram its flash memory.
         Data to be written should already be in the C256's RAM at address."""
-        self.transfer(0x10, address, 0, 0)
+        self.transfer(constants.CMD_PROGRAM_FLASH, address, 0, 0)
 
     def write_block(self, address, data):
         """Write a block of data to the specified starting address in the C256's memory."""
-        self.transfer(0x01, address, data, 0)
+        self.transfer(constants.CMD_WRITE_MEM, address, data, 0)
 
     def read_block(self, address, length):
         """Read a block of data of the specified length from the specified starting address of the C256's memory."""
-        return self.transfer(0x00, address, 0, length)
+        return self.transfer(constants.CMD_READ_MEM, address, 0, length)
 
     def readbyte(self):
         b = self.connection.read(1)
@@ -84,12 +83,12 @@ class FoenixDebugPort:
         # else:
         #     print('Writing data of length {:X} to {:X}'.format(length, address))        
 
-        command_bytes = command.to_bytes(1, 'big')
-        address_bytes = address.to_bytes(3, 'big')
-        length_bytes = length.to_bytes(2, 'big')
+        command_bytes = command.to_bytes(1, byteorder='big')
+        address_bytes = address.to_bytes(3, byteorder='big')
+        length_bytes = length.to_bytes(2, byteorder='big')
 
         header = bytearray(7)
-        header[0] = 0x55
+        header[0] = constants.REQUEST_SYNC_BYTE
         header[1] = command_bytes[0]
         header[2] = address_bytes[0]
         header[3] = address_bytes[1]
@@ -104,7 +103,7 @@ class FoenixDebugPort:
             for i in range(0, length):
                 lrc = lrc ^ data[i]
 
-        lrc_bytes = lrc.to_bytes(1, 'big')
+        lrc_bytes = lrc.to_bytes(1, byteorder='big')
 
         if data:
             packet = header + data + lrc_bytes
@@ -119,14 +118,15 @@ class FoenixDebugPort:
         # print('Sent [{}]'.format(packet.hex()))
 
         c = 0
-        while c != 0xAA:
+        while c != constants.RESPONSE_SYNC_BYTE:
             c = self.readbyte()
 
         # print('Got 0xAA')
 
         read_bytes = 0
 
-        if c == 0xAA:
+        if c == constants.RESPONSE_SYNC_BYTE:
+
             self.status0 = self.readbyte()
             self.status1 = self.readbyte()
 
@@ -138,3 +138,177 @@ class FoenixDebugPort:
         # print("Status: {:X}, {:X}".format(self.status0, self.status1))
         
         return read_bytes
+
+
+class FoenixConnection(ABC):
+    @abstractmethod
+    def open(self, port):
+        pass
+
+    @abstractmethod
+    def close(self):
+        pass
+
+    @abstractmethod
+    def is_open(self):
+        pass
+
+    @abstractmethod
+    def read(self, num_bytes):
+        pass
+
+    @abstractmethod
+    def write(self, data):
+        pass
+
+
+class SerialFoenixConnection(FoenixConnection):
+    """ Connects to Foenix via local serial port """
+    serial_port = None
+
+    def open(self, port):
+        self.serial_port = serial.Serial(port=port,
+            baudrate=6000000,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=60,
+            write_timeout=60)
+        try:
+            self.serial_port.open()
+        except:
+            self.serial_port.close()
+            self.serial_port.open()
+
+    def close(self):
+        self.serial_port.close()
+
+    def is_open(self):
+        return self.serial_port.is_open()
+
+    def read(self, num_bytes):
+        return self.serial_port.read(num_bytes)
+
+    def write(self, data):
+        return self.serial_port.write(data)
+
+
+class SocketFoenixConnection(FoenixConnection):
+    """ Connects to Foenix via TCP-serial bridge """
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # AF_INET = IPv4, SOCK_STREAM = TCP socket
+    _is_open = False
+
+    def open(self, port):
+        parsed_host_port = port.split(":")
+        tcp_host = parsed_host_port[0]
+        tcp_port = int(parsed_host_port[1]) if len(parsed_host_port) > 0 else 2560
+
+        print("Connecting to remote Foenix at {}:{}...".format(tcp_host, tcp_port), end="")
+        self.tcp_socket.connect(tuple([tcp_host, tcp_port]))
+        print(" ✓")
+        self._is_open = True
+
+    def close(self):
+        self.tcp_socket.close()
+        self._is_open = False
+
+    def is_open(self):
+        return self._is_open
+
+    def read(self, num_bytes):
+        bytes_read = self.tcp_socket.recv(num_bytes)
+        return bytes_read
+
+    def write(self, data):
+        self.tcp_socket.sendall(data)
+        return len(data)
+
+
+class FoenixTcpBridge():
+    """ Listens on a TCP socket and relays communications to the Foenix serial debug port """
+    def __init__(self, tcp_host, tcp_port, serial_port):
+        self.tcp_host = tcp_host
+        self.tcp_port = tcp_port
+        self.serial_port = serial_port
+
+    def recv_bytes(self, num_bytes):
+        total_bytes_received = self.tcp_connection.recv(num_bytes)
+        if not total_bytes_received: # Client hung up
+            return total_bytes_received
+        total_bytes_received = bytearray(total_bytes_received)
+        while len(total_bytes_received) < num_bytes:
+            bytes_received = self.tcp_connection.recv(num_bytes - len(total_bytes_received))
+            total_bytes_received.extend(bytes_received)
+
+        return bytes(total_bytes_received)
+
+
+    def listen(self):
+        """ Listen for TCP socket connections and relay messages to Foenix via serial port """
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: # AF_INET=IPv4, SOCK_STREAM=TCP
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind((self.tcp_host, self.tcp_port))
+                s.listen()
+                print("Listening for connections to {} on port {}".format(self.tcp_host, self.tcp_port))
+
+                self.tcp_connection, tcp_address = s.accept()
+                print("Received connection from {}".format(tcp_address[0]))
+                with self.tcp_connection:
+                    while True:
+                        # First get the 7-byte request header
+                        header = self.recv_bytes(7)
+                        if not header:
+                            print("Connection from {} closed".format(tcp_address[0]))
+                            break
+
+                        command = header[1]
+
+                        # The data size comes from bytes 5 and 6 in the header
+                        data_length = int.from_bytes(header[5:7], byteorder="big")
+
+                        # The data payload only comes along with a write command
+                        data = None
+                        if command == constants.CMD_WRITE_MEM:
+                            data = self.recv_bytes(data_length)
+
+                        # The LRC byte is required and denotes the end of the request
+                        request_lrc_byte = self.recv_bytes(1)
+
+                        # TCP request is now complete, time to pass along to Foenix
+                        bytes_to_write = bytearray(header)
+                        if data is not None:
+                            bytes_to_write.extend(data)
+                        bytes_to_write.extend(request_lrc_byte)
+
+                        with serial.Serial(port=self.serial_port, baudrate=6000000, timeout=60,
+                                        write_timeout=60) as serial_connection:
+                            num_bytes_written = serial_connection.write(bytes_to_write)
+
+                            # Probably should handle this situation a bit more elegantly
+                            if num_bytes_written != len(bytes_to_write):
+                                raise Exception("Serial port error - tried writing {} bytes, was only able to write {}"
+                                    .format(len(bytes_to_write), num_bytes_written))
+
+                            # Read until we get the start of the response
+                            response_sync_byte = serial_connection.read(1)
+
+                            # Next two bytes are the status bytes
+                            response_status_bytes = serial_connection.read(2)
+
+                            # Read the data payload if requested
+                            response_data = None
+                            if command == constants.CMD_READ_MEM and data_length > 0:
+                                response_data = serial_connection.read(data_length)
+
+                            response_lrc_byte = serial_connection.read(1)
+
+                            # Construct the response
+                            response = bytearray(response_sync_byte)
+                            response.extend(response_status_bytes)
+                            if response_data is not None:
+                                response.extend(response_data)
+                            response.extend(response_lrc_byte)
+
+                            # Return the response back to the TCP client
+                            self.tcp_connection.sendall(response)

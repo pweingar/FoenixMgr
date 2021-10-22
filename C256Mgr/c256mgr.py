@@ -231,6 +231,14 @@ def list_serial_ports():
         print(f"   Product: {serial_port.product}")
         print()
 
+def tcp_bridge(tcp_host_port, serial_port):
+    """ Listen for TCP socket connections and relay messages to Foenix via serial port """
+    parsed_host_port = tcp_host_port.split(":")
+    tcp_host = parsed_host_port[0]
+    tcp_port = int(parsed_host_port[1]) if len(parsed_host_port) > 0 else 2560
+    tcp_listener = foenix.FoenixTcpBridge(tcp_host, tcp_port, serial_port)
+    tcp_listener.listen()
+
 
 config = configparser.ConfigParser()
 config.read('c256.ini')
@@ -278,10 +286,17 @@ parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
 parser.add_argument("--upload-srec", metavar="SREC FILE", dest="srec_file",
                     help="Upload a Motorola SREC hex file.")
 
+parser.add_argument("--tcp-bridge", metavar="HOST:PORT", dest="tcp_host_port",
+                    help="Setup a TCP-serial bridge, listening on HOST:PORT and relaying messages to the Foenix via " +
+                         "the configured serial port")
+
 options = parser.parse_args()
 
 try:
-    if options.port != "":
+    if options.list_ports:
+        list_serial_ports()
+
+    elif options.port != "":
         if options.hex_file:
             send(options.port, options.hex_file)
 
@@ -312,8 +327,8 @@ try:
         elif options.address and options.flash_file:
             program_flash(options.port, options.flash_file, options.address)
 
-        elif options.list_ports:
-            list_serial_ports()
+        elif options.tcp_host_port:
+            tcp_bridge(options.tcp_host_port, options.port)
 
         else:
             parser.print_help()
