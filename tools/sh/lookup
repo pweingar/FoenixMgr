@@ -1,0 +1,8 @@
+# Print the contents of memory at the labeled address
+# usage: lookup {label}
+
+if [ -z $2 ]
+    python $FOENIXHOME/FoenixMgr/fnxmgr.py --lookup $1
+else
+    python $FOENIXHOME/FoenixMgr/fnxmgr.py --lookup $1 --count $2
+fi

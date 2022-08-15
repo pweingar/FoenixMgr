@@ -1,0 +1,8 @@
+# Reprogram the flash memory on the Foenix
+
+if [ -z $2 ]
+then
+    python $FOENIXHOME/FoenixMgr/fnxmgr.py --flash $1
+else
+    python $FOENIXHOME/FoenixMgr/fnxmgr.py --flash $1 --address $2
+fi

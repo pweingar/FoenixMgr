@@ -1,17 +1,14 @@
 import intelhex
 import wdc
 import foenix
+import foenix_config
 import srec
-import configparser
 import re
 import sys
 import argparse
 import os
 
 from serial.tools import list_ports
-
-FLASH_SIZE = 524288     # Required size of flash file: 512 KB
-CHUNK_SIZE = 4096       # Size of block of binary data to transfer
 
 label_file = ""
 to_send = ""
@@ -140,7 +137,7 @@ def display(base_address, data):
                 text_buff = text_buff + "."
         else:
             text_buff = text_buff + "."
-        
+
     sys.stdout.write(' {}\n'.format(text_buff))
 
 def send_wdc(port, filename):
@@ -161,7 +158,7 @@ def send_wdc(port, filename):
         finally:
             infile.close()
     finally:
-        c256.close() 
+        c256.close()
 
 def send_srec(port, filename):
     """Send the data in the SREC hex file 'filename' to the C256 on the given serial port."""
@@ -240,17 +237,17 @@ def tcp_bridge(tcp_host_port, serial_port):
     tcp_listener.listen()
 
 
-config = configparser.ConfigParser()
-config.read('c256.ini')
+# Load the configuration file...
+config = foenix_config.FoenixConfig()
 
 parser = argparse.ArgumentParser(description='Manage the C256 Foenix through its debug port.')
-parser.add_argument("--port", dest="port", default=config['DEFAULT'].get('port', 'COM3'),
+parser.add_argument("--port", dest="port", default=config.port(),
                     help="Specify the serial port to use to access the C256 debug port.")
 
 parser.add_argument("--list-ports", dest="list_ports", action="store_true",
                     help="List available serial ports.")
 
-parser.add_argument("--label-file", dest="label_file", default=config['DEFAULT'].get('labels', 'basic8'),
+parser.add_argument("--label-file", dest="label_file", default=config.label_file(),
                     help="Specify the label file to use for dereference and lookup")
 
 parser.add_argument("--count", dest="count", default="10", help="the number of bytes to read")
@@ -265,7 +262,7 @@ parser.add_argument("--lookup", metavar="LABEL", dest="lookup_name",
                     help="Display the memory starting at the address indicated by the label.")
 
 parser.add_argument("--revision", action="store_true", dest="revision",
-                    help="Display the revision code of the debug interface.")  
+                    help="Display the revision code of the debug interface.")
 
 parser.add_argument("--flash", metavar="BINARY FILE", dest="flash_file",
                     help="Attempt to reprogram the flash using the binary file provided.")
@@ -274,7 +271,7 @@ parser.add_argument("--binary", metavar="BINARY FILE", dest="binary_file",
                     help="Upload a binary file to the C256's RAM.")
 
 parser.add_argument("--address", metavar="ADDRESS", dest="address",
-                    default=config['DEFAULT'].get('flash_address', '380000'),
+                    default=config.address(),
                     help="Provide the starting address of the memory block to use in flashing memory.")
 
 parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
@@ -336,4 +333,3 @@ try:
         parser.print_help()
 finally:
     print
-

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import serial
 import socket
 import constants
+import foenix_config
 
 class FoenixDebugPort:
     """Provide the connection to a C256 Foenix debug port."""
@@ -81,7 +82,7 @@ class FoenixDebugPort:
         # elif command == 0x81:
         #     print('Resetting')
         # else:
-        #     print('Writing data of length {:X} to {:X}'.format(length, address))        
+        #     print('Writing data of length {:X} to {:X}'.format(length, address))
 
         command_bytes = command.to_bytes(1, byteorder='big')
         address_bytes = address.to_bytes(3, byteorder='big')
@@ -114,7 +115,7 @@ class FoenixDebugPort:
             packet = header + lrc_bytes
             written = self.connection.write(packet)
             if written != len(packet):
-                raise Exception("Could not write packet correctly.")            
+                raise Exception("Could not write packet correctly.")
         # print('Sent [{}]'.format(packet.hex()))
 
         c = 0
@@ -136,7 +137,7 @@ class FoenixDebugPort:
             read_lrc = self.readbyte()
 
         # print("Status: {:X}, {:X}".format(self.status0, self.status1))
-        
+
         return read_bytes
 
 
@@ -167,13 +168,14 @@ class SerialFoenixConnection(FoenixConnection):
     serial_port = None
 
     def open(self, port):
+        config = foenix_config.FoenixConfig()
         self.serial_port = serial.Serial(port=port,
-            baudrate=6000000,
+            baudrate=config.data_rate(),
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
-            timeout=60,
-            write_timeout=60)
+            timeout=config.timeout(),
+            write_timeout=config.timeout())
         try:
             self.serial_port.open()
         except:

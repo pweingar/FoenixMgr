@@ -1,0 +1,9 @@
+# Print the contents of memory
+# usage: dump {start address} [{byte count}]
+
+if [ -z $2 ]
+then
+    python $FOENIXHOME/FoenixMgr/fnxmgr.py --dump $1
+else
+    python %FOENIXHOME%\FoenixMgr\fnxmgr.py --dump $1 --count $2
+fi

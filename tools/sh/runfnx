@@ -1,0 +1,2 @@
+
+python $FOENIXHOME/FoenixMgr/fnxmgr.py --upload $1
