@@ -1,2 +1,2 @@
 @echo off
-python %FOENIXHOME%\FoenixMgr\fnxmgr.py --upload %1
+python %FOENIXMGR%\FoenixMgr\fnxmgr.py --upload %1

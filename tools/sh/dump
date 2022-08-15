@@ -3,7 +3,7 @@
 
 if [ -z $2 ]
 then
-    python $FOENIXHOME/FoenixMgr/fnxmgr.py --dump $1
+    python $FOENIXMGR/FoenixMgr/fnxmgr.py --dump $1
 else
-    python %FOENIXHOME%\FoenixMgr\fnxmgr.py --dump $1 --count $2
+    python $FOENIXMGR/FoenixMgr/fnxmgr.py --dump $1 --count $2
 fi

@@ -7,7 +7,7 @@ class FoenixConfig:
     def __init__(self):
         """Attempt to read and process the config file."""
         config = configparser.ConfigParser()
-        config.read(['foenix.ini', os.path.expandvars('$FOENIXHOME/foenix.ini'), os.path.expanduser('~/foenix.ini')])
+        config.read(['foenixmgr.ini', os.path.expandvars('$FOENIXMGR/foenixmgr.ini'), os.path.expanduser('~/foenixmgr.ini')])
 
         self._flash_size = int(config['DEFAULT'].get('flash_size', '524288'), 10)
         self._port = config['DEFAULT'].get('port', 'COM3')

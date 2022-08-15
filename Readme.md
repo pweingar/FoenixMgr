@@ -8,11 +8,11 @@ NOTE: To run FoenixMgr, you will need Python3 installed on your system. There ar
 
 `pip install -r requirements.txt`
 
-FoenixMgr has been recoded from the C256Mgr original to be more flexible. One of the new features is that only one copy of the scripts are necessary on the system, where the old C256Mgr really needed to be included with every project. To get this to work, once you have copied the FoenixMgr project to your system, you will need to define an environment variable `FOENIXHOME`, which is the directory that contains this repository. The batch file tools will look for the Python scripts using that variable, and the Python scripts will look for the configuration file in that folder as well (although it can look for the configuration file in other folders as well... see below).
+FoenixMgr has been recoded from the C256Mgr original to be more flexible. One of the new features is that only one copy of the scripts are necessary on the system, where the old C256Mgr really needed to be included with every project. To get this to work, once you have copied the FoenixMgr project to your system, you will need to define an environment variable `FOENIXMGR`, which is the directory that contains this repository. The batch file tools will look for the Python scripts using that variable, and the Python scripts will look for the configuration file in that folder as well (although it can look for the configuration file in other folders as well... see below).
 
 ## Configuration File
 
-The core of the tool is the FoenixMgr Python script. It takes an `foenix.ini` file with three initialization tags:
+The core of the tool is the FoenixMgr Python script. It takes an `foenixmgr.ini` file with three initialization tags:
 
 * `port`, which is the name of the serial port to use for connecting to the debug port
 * `labels`, which is the path to the 64TASS LBL file for this project.
@@ -24,7 +24,7 @@ The core of the tool is the FoenixMgr Python script. It takes an `foenix.ini` fi
 
 The setting `port`, `labels`, and `address` can be over-ridden by command line options.
 
-FoenixMgr will look for the configuration file in your current directory, in your user home directory, or in the directory indicated by the environment variable `FOENIXHOME`.
+FoenixMgr will look for the configuration file in your current directory, in your user home directory, or in the directory indicated by the environment variable `FOENIXMGR`.
 
 ## Command Line Arguments
 

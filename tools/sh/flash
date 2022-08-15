@@ -2,7 +2,7 @@
 
 if [ -z $2 ]
 then
-    python $FOENIXHOME/FoenixMgr/fnxmgr.py --flash $1
+    python $FOENIXMGR/FoenixMgr/fnxmgr.py --flash $1
 else
-    python $FOENIXHOME/FoenixMgr/fnxmgr.py --flash $1 --address $2
+    python $FOENIXMGR/FoenixMgr/fnxmgr.py --flash $1 --address $2
 fi

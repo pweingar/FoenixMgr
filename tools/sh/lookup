@@ -2,7 +2,7 @@
 # usage: lookup {label}
 
 if [ -z $2 ]
-    python $FOENIXHOME/FoenixMgr/fnxmgr.py --lookup $1
+    python $FOENIXMGR/FoenixMgr/fnxmgr.py --lookup $1
 else
-    python $FOENIXHOME/FoenixMgr/fnxmgr.py --lookup $1 --count $2
+    python $FOENIXMGR/FoenixMgr/fnxmgr.py --lookup $1 --count $2
 fi
