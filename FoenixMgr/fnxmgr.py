@@ -43,11 +43,11 @@ def upload_binary(port, filename, address):
             c256.enter_debug()
             try:
                 current_addr = int(address, 16)
-                block = f.read(CHUNK_SIZE)
+                block = f.read(config.chunk_size())
                 while block:
                     c256.write_block(current_addr, block)
                     current_addr += len(block)
-                    block = f.read(CHUNK_SIZE)
+                    block = f.read(config.chunk_size())
             finally:
                 c256.exit_debug()
         finally:
@@ -68,11 +68,11 @@ def program_flash(port, filename, hex_address):
                     c256.open(port)
                     c256.enter_debug()
                     try:
-                        block = f.read(CHUNK_SIZE)
+                        block = f.read(config.chunk_size())
                         while block:
                             c256.write_block(address, block)
                             address += len(block)
-                            block = f.read(CHUNK_SIZE)
+                            block = f.read(config.chunk_size())
 
                         print("Binary file uploaded...", flush=True)
                         c256.erase_flash()
