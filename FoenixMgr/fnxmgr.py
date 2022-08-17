@@ -7,6 +7,7 @@ import re
 import sys
 import argparse
 import os
+import pgz
 
 from serial.tools import list_ports
 
@@ -139,6 +140,26 @@ def display(base_address, data):
             text_buff = text_buff + "."
 
     sys.stdout.write(' {}\n'.format(text_buff))
+
+def send_pgz(port, filename):
+    """Send the data in the PGZ file 'filename' to the C256 on the given serial port."""
+    infile = pgz.PGZBinFile()
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        infile.open(filename)
+        try:
+            infile.set_handler(lambda address, data: c256.write_block(address, data))
+            c256.enter_debug()
+            try:
+                # Process the lines in the hex file
+                infile.read_blocks()
+            finally:
+                c256.exit_debug()
+        finally:
+            infile.close()
+    finally:
+        c256.close()
 
 def send_wdc(port, filename):
     """Send the data in the hex file 'filename' to the C256 on the given serial port."""
@@ -275,10 +296,13 @@ parser.add_argument("--address", metavar="ADDRESS", dest="address",
                     help="Provide the starting address of the memory block to use in flashing memory.")
 
 parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
-                    help="Attempt to reprogram the flash using the binary file provided.")
+                    help="Upload an Intel HEX file.")
 
 parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
                     help="Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)")
+
+parser.add_argument("--run-pgz", metavar="PGZ FILE", dest="pgz_file",
+                    help="Upload and run a PGZ binary file.")
 
 parser.add_argument("--upload-srec", metavar="SREC FILE", dest="srec_file",
                     help="Upload a Motorola SREC hex file.")
@@ -296,6 +320,9 @@ try:
     elif options.port != "":
         if options.hex_file:
             send(options.port, options.hex_file)
+
+        elif options.pgz_file:
+            send_pgz(options.port, options.pgz_file)
 
         elif options.wdc_file:
             send_wdc(options.port, options.wdc_file)

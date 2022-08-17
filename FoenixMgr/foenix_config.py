@@ -16,6 +16,7 @@ class FoenixConfig:
         self._label_file = config['DEFAULT'].get('labels', 'basic8')
         self._address = config['DEFAULT'].get('address', '380000')
         self._timeout = int(config['DEFAULT'].get('timeout', '60'), 10)
+        self._cpu = config['DEFAULT'].get('cpu', '65c02')
 
     def flash_size(self):
         """Return the required size of the flash binary file in bytes."""
@@ -44,3 +45,7 @@ class FoenixConfig:
     def timeout(self):
         """Return the timeout to allow for serial communications (in seconds)."""
         return self._timeout
+
+    def cpu(self):
+        """Return the CPU of the target machine."""
+        return self._cpu

@@ -191,9 +191,17 @@ class SerialFoenixConnection(FoenixConnection):
     def read(self, num_bytes):
         return self.serial_port.read(num_bytes)
 
-    def write(self, data):
-        return self.serial_port.write(data)
+    def log_send(self, data):
+        """Display the message sent to the debug port in a truncated format."""
+        data_s = data.hex()
+        if len(data_s) > 70:
+            print("^{}...".format(data_s[0:70]))
+        else:
+            print("^{}".format(data_s))
 
+    def write(self, data):
+        # self.log_send(data)
+        return self.serial_port.write(data)
 
 class SocketFoenixConnection(FoenixConnection):
     """ Connects to Foenix via TCP-serial bridge """

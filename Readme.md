@@ -21,6 +21,7 @@ The core of the tool is the FoenixMgr Python script. It takes an `foenixmgr.ini`
 * `chunk_size`, which is the size of the data packet to send over the debug port
 * `data_rate`, which is the bit rate to use in communicating over the debug port
 * `timeout`, which is the amount of time (in seconds) to allow before timing out the serial connection
+* `cpu`, which is the name of the CPU on the target Foenix (currently: 65c02, 65816, m68k). This setting is used by the `run-pgz` option to determine what kind of bootstrap loader needs to be inserted to actually start the executable.
 
 The setting `port`, `labels`, and `address` can be over-ridden by command line options.
 
@@ -55,10 +56,13 @@ If you have a 64TASS label file (`*.lbl`), you can provide that as an option and
 The count of bytes is optional and defaults to 16 ("10" in hex).
 
 ```
-usage: fnxmgr.py [-h] [--port PORT] [--label-file LABEL_FILE] [--count COUNT]
-                     [--dump ADDRESS] [--deref LABEL] [--lookup LABEL]
-                     [--revision] [--flash BINARY FILE] [--binary BINARY FILE]   
-                     [--address ADDRESS] [--upload HEX_FILE]
+usage: fnxmgr.py [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE]
+                 [--count COUNT] [--dump ADDRESS] [--deref LABEL]
+                 [--lookup LABEL] [--revision] [--flash BINARY FILE]
+                 [--binary BINARY FILE] [--address ADDRESS]
+                 [--upload HEX FILE] [--upload-wdc BINARY FILE]
+                 [--run-pgz PGZ FILE] [--upload-srec SREC FILE]
+                 [--tcp-bridge HOST:PORT]
 
 Manage the C256 Foenix through its debug port.
 
@@ -82,16 +86,16 @@ optional arguments:
   --binary BINARY FILE  Upload a binary file to the C256's RAM.
   --address ADDRESS     Provide the starting address of the memory block to
                         use in flashing memory.
-  --upload HEX FILE     Attempt to reprogram the flash using the binary file
-                        provided.
+  --upload HEX FILE     Upload an Intel HEX file.
   --upload-wdc BINARY FILE
                         Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)
+  --run-pgz PGZ FILE    Upload and run a PGZ binary file.
   --upload-srec SREC FILE
                         Upload a Motorola SREC hex file.
   --tcp-bridge HOST:PORT
-                        Setup a TCP-serial bridge, listening on HOST:PORT
-                        and relaying messages to the Foenix via the
-                        configured serial port
+                        Setup a TCP-serial bridge, listening on HOST:PORT and
+                        relaying messages to the Foenix via the configured
+                        serial port
 ```
 
 ## Batch Files
