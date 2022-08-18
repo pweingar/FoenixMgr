@@ -61,8 +61,8 @@ usage: fnxmgr.py [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE]
                  [--lookup LABEL] [--revision] [--flash BINARY FILE]
                  [--binary BINARY FILE] [--address ADDRESS]
                  [--upload HEX FILE] [--upload-wdc BINARY FILE]
-                 [--run-pgz PGZ FILE] [--upload-srec SREC FILE]
-                 [--tcp-bridge HOST:PORT]
+                 [--run-pgz PGZ FILE] [--run-pgx PGX FILE]
+                 [--upload-srec SREC FILE] [--tcp-bridge HOST:PORT]
 
 Manage the C256 Foenix through its debug port.
 
@@ -90,6 +90,7 @@ optional arguments:
   --upload-wdc BINARY FILE
                         Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)
   --run-pgz PGZ FILE    Upload and run a PGZ binary file.
+  --run-pgx PGX FILE    Upload and run a PGX binary file.
   --upload-srec SREC FILE
                         Upload a Motorola SREC hex file.
   --tcp-bridge HOST:PORT
@@ -104,11 +105,15 @@ This package includes four DOS batch files and Unix/Linux shell scripts to help 
 
 * `dump`: takes an address (in hex) and an optional byte count (also in hex) and dumps memory at that address to the screen: `dump 010000 20`.
 
-* `run`: take an Intel HEX file and downloads it into the C256's memory. If the HEX file includes a block of memory covering the processor's RESET hardware vector, this will also cause the program in the HEX file to run starting with the RESET handler provided: `run basic816.hex`.
+* `run`: take an Intel HEX file and downloads it into the Foenix's memory. If the HEX file includes a block of memory covering the processor's RESET hardware vector, this will also cause the program in the HEX file to run starting with the RESET handler provided: `run basic816.hex`.
+
+* `runpgx`: take a Foenix PGX binary file, download it into the Foenix's memory, and attempt to run it.
+
+* `runpgz`: take a Foenix PGZ binary file, download it into the Foenix's memory, and attempt to run it.
 
 * `lookup`: takes a label and an optional byte count (in hex). The label is used to search the LBL file of the project for an address. If the address is found, the memory starting at that address will be dumped to the screen: `lookup COUNTER`.
 
-* `deref`: takes a label and an optional byte count (in hex). The label is used to search the LBL file of the project for an address. If the address is found, the three bytes starting at that address will be read from the C256 memory and used as the starting address to dump memory to the screen: `deref INDEX 30`.
+* `deref`: takes a label and an optional byte count (in hex). The label is used to search the LBL file of the project for an address. If the address is found, the three bytes starting at that address will be read from the Foenix memory and used as the starting address to dump memory to the screen: `deref INDEX 30`.
 
 * `flash`: takes a binary file containing a flash image and an optional address. The binary image must be exactly 512KB and is copied raw to the address provided (or the default address from the INI file). The existing flash data is erased and replaced by the data in the BIN file. The script will ask for confirmation before begining the process.
 

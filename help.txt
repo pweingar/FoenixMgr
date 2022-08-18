@@ -1,0 +1,41 @@
+usage: fnxmgr.py [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE]
+                 [--count COUNT] [--dump ADDRESS] [--deref LABEL]
+                 [--lookup LABEL] [--revision] [--flash BINARY FILE]
+                 [--binary BINARY FILE] [--address ADDRESS]
+                 [--upload HEX FILE] [--upload-wdc BINARY FILE]
+                 [--run-pgz PGZ FILE] [--run-pgx PGX FILE]
+                 [--upload-srec SREC FILE] [--tcp-bridge HOST:PORT]
+
+Manage the C256 Foenix through its debug port.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --port PORT           Specify the serial port to use to access the C256
+                        debug port.
+  --list-ports          List available serial ports.
+  --label-file LABEL_FILE
+                        Specify the label file to use for dereference and
+                        lookup
+  --count COUNT         the number of bytes to read
+  --dump ADDRESS        Read memory from the C256's memory and display it.
+  --deref LABEL         Lookup the address stored at LABEL and display the
+                        memory there.
+  --lookup LABEL        Display the memory starting at the address indicated
+                        by the label.
+  --revision            Display the revision code of the debug interface.
+  --flash BINARY FILE   Attempt to reprogram the flash using the binary file
+                        provided.
+  --binary BINARY FILE  Upload a binary file to the C256's RAM.
+  --address ADDRESS     Provide the starting address of the memory block to
+                        use in flashing memory.
+  --upload HEX FILE     Upload an Intel HEX file.
+  --upload-wdc BINARY FILE
+                        Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)
+  --run-pgz PGZ FILE    Upload and run a PGZ binary file.
+  --run-pgx PGX FILE    Upload and run a PGX binary file.
+  --upload-srec SREC FILE
+                        Upload a Motorola SREC hex file.
+  --tcp-bridge HOST:PORT
+                        Setup a TCP-serial bridge, listening on HOST:PORT and
+                        relaying messages to the Foenix via the configured
+                        serial port
