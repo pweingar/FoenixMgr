@@ -62,7 +62,7 @@ def program_flash(port, filename, hex_address):
     address = base_address
     print("About to upload image to address 0x{:X}".format(address), flush=True)
 
-    if os.path.getsize(filename) == FLASH_SIZE:
+    if os.path.getsize(filename) == config.flash_size():
         if confirm("Are you sure you want to reprogram the flash memory? (y/n): "):
             with open(filename, "rb") as f:
                 c256 = foenix.FoenixDebugPort()
