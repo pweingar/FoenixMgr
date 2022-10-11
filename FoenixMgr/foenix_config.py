@@ -1,5 +1,6 @@
 import configparser
 import os
+import sys
 
 class FoenixConfig:
     """Configuration data for the FoenixMgr. Exposes the foenix.ini file."""
@@ -8,6 +9,10 @@ class FoenixConfig:
         """Attempt to read and process the config file."""
         config = configparser.ConfigParser()
         config.read(['foenixmgr.ini', os.path.expandvars('$FOENIXMGR/foenixmgr.ini'), os.path.expanduser('~/foenixmgr.ini')])
+
+        if not config.items("DEFAULT"):
+            print("No proper foenixmgr.ini file found.")
+            sys.exit(1)
 
         self._flash_size = int(config['DEFAULT'].get('flash_size', '524288'), 10)
         self._port = config['DEFAULT'].get('port', 'COM3')
