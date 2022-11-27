@@ -23,6 +23,7 @@ class FoenixDebugPort:
         self.connection.open(port=port)
 
     def set_byte_by_byte(self, value):
+        """Set transaction mode to byte-byte-byte"""
         self.byte_by_byte = value
 
     def is_open(self):
@@ -115,15 +116,21 @@ class FoenixDebugPort:
             if self.byte_by_byte:
                 for i in range(len(packet)):
                     self.connection.write(packet[i:i+1])
+                    self.connection.serial_port.flush()
             else:
                 written = self.connection.write(packet)
                 if written != len(packet):
                     raise Exception("Could not write packet correctly.")
         else:
             packet = header + lrc_bytes
-            written = self.connection.write(packet)
-            if written != len(packet):
-                raise Exception("Could not write packet correctly.") 
+            if self.byte_by_byte:
+                for i in range(len(packet)):
+                    self.connection.write(packet[i:i+1])
+                    self.connection.serial_port.flush()
+            else:
+                written = self.connection.write(packet)
+                if written != len(packet):
+                    raise Exception("Could not write packet correctly.")
         # print('Sent [{}]'.format(packet.hex()))
 
         c = 0

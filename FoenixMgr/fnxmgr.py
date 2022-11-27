@@ -58,24 +58,32 @@ def upload_binary(port, filename, address):
 def upload_test(port, pattern, address):
     """Upload a test pattern into RAM."""
 
-    print(pattern)
-
-    ba = bytearray(256)
-    for i in range(0, 255):
-        b = bytes.fromhex(pattern)
-        ba[i] = b[0]
+    raw_packet = []
+    if pattern == "1234":
+        # Upload an incrementing pattern from 00 to FF
+        for i in range(0, 256):
+            raw_packet.append(i)
+    elif pattern == "4321":
+        # Upload a decrementing pattern from FF to 00
+        for i in range(0, 256):
+            raw_packet.append(255 - i)
+    else:
+        # Otherwise, just treat it as a single byte to fill the memory
+        x = int(pattern, 16) & 0xff
+        for i in range(0, 256):
+            raw_packet.append(x)
 
     c256 = foenix.FoenixDebugPort()
     try:
         print("Trying to open...")
         c256.open(port)
+        print("Setting to byte-by-byte mode...")
+        c256.set_byte_by_byte(1)
         print("Entering debug mode...")
         c256.enter_debug()
         try:
-            print("Setting to byte-by-byte mode...")
-            c256.set_byte_by_byte(0)
             print("Trying to write...")
-            c256.write_block(address, ba)
+            c256.write_block(int(address, 16), bytes(raw_packet))
         finally:
             print("Exiting debug mode...")
             c256.exit_debug()
@@ -350,7 +358,7 @@ parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
                     help="Upload an Intel HEX file.")
 
 parser.add_argument("--pattern", metavar="value", dest="pattern",
-                    help="Upload a test pattern.")
+                    help="Upload a 256 byte test pattern.")
 
 parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
                     help="Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)")
