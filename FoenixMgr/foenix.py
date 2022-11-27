@@ -9,6 +9,7 @@ class FoenixDebugPort:
     connection = None
     status0 = 0
     status1 = 0
+    byte_by_byte = 0
 
     def open(self, port):
         """Open a connection to the C256 Foenix."""
@@ -20,6 +21,9 @@ class FoenixDebugPort:
             self.connection = SerialFoenixConnection()
 
         self.connection.open(port=port)
+
+    def set_byte_by_byte(self, value):
+        self.byte_by_byte = value
 
     def is_open(self):
         return self.connection.is_open()
@@ -108,14 +112,18 @@ class FoenixDebugPort:
 
         if data:
             packet = header + data + lrc_bytes
-            written = self.connection.write(packet)
-            if written != len(packet):
-                raise Exception("Could not write packet correctly.")
+            if self.byte_by_byte:
+                for i in range(len(packet)):
+                    self.connection.write(packet[i:i+1])
+            else:
+                written = self.connection.write(packet)
+                if written != len(packet):
+                    raise Exception("Could not write packet correctly.")
         else:
             packet = header + lrc_bytes
             written = self.connection.write(packet)
             if written != len(packet):
-                raise Exception("Could not write packet correctly.")
+                raise Exception("Could not write packet correctly.") 
         # print('Sent [{}]'.format(packet.hex()))
 
         c = 0

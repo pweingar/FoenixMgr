@@ -55,6 +55,36 @@ def upload_binary(port, filename, address):
         finally:
             c256.close()
 
+def upload_test(port, pattern, address):
+    """Upload a test pattern into RAM."""
+
+    print(pattern)
+
+    ba = bytearray(256)
+    for i in range(0, 255):
+        b = bytes.fromhex(pattern)
+        ba[i] = b[0]
+
+    c256 = foenix.FoenixDebugPort()
+    try:
+        print("Trying to open...")
+        c256.open(port)
+        print("Entering debug mode...")
+        c256.enter_debug()
+        try:
+            print("Setting to byte-by-byte mode...")
+            c256.set_byte_by_byte(0)
+            print("Trying to write...")
+            c256.write_block(address, ba)
+        finally:
+            print("Exiting debug mode...")
+            c256.exit_debug()
+    finally:
+        print("Closing connection...")
+        c256.close()
+
+    print("Done.")
+
 def program_flash(port, filename, hex_address):
     """Program the flash memory using the contents of the C256's RAM."""
 
@@ -62,7 +92,7 @@ def program_flash(port, filename, hex_address):
     address = base_address
     print("About to upload image to address 0x{:X}".format(address), flush=True)
 
-    if os.path.getsize(filename) == config.flash_size():
+    if os.path.getsize(filename) == foenix_config.flash_size():
         if confirm("Are you sure you want to reprogram the flash memory? (y/n): "):
             with open(filename, "rb") as f:
                 c256 = foenix.FoenixDebugPort()
@@ -319,6 +349,9 @@ parser.add_argument("--address", metavar="ADDRESS", dest="address",
 parser.add_argument("--upload", metavar="HEX FILE", dest="hex_file",
                     help="Upload an Intel HEX file.")
 
+parser.add_argument("--pattern", metavar="value", dest="pattern",
+                    help="Upload a test pattern.")
+
 parser.add_argument("--upload-wdc", metavar="BINARY FILE", dest="wdc_file",
                     help="Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)")
 
@@ -344,6 +377,9 @@ try:
     elif options.port != "":
         if options.hex_file:
             send(options.port, options.hex_file)
+
+        elif options.pattern:
+            upload_test(options.port, options.pattern, options.address)
 
         elif options.pgz_file:
             send_pgz(options.port, options.pgz_file)
