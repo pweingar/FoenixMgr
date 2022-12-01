@@ -2,9 +2,19 @@ CMD_READ_MEM = 0x00
 CMD_WRITE_MEM = 0x01
 CMD_PROGRAM_FLASH = 0x10
 CMD_ERASE_FLASH = 0x11
+CMD_ERASE_SECTOR = 0x12
+CMD_PROGRAM_SECTOR = 0x13
 CMD_ENTER_DEBUG = 0x80
 CMD_EXIT_DEBUG = 0x81
+CMD_BOOT_RAM = 0x90
+CMD_BOOT_FLASH = 0x91
 CMD_REVISION = 0xFE
+
+DELAY_ERASE_SECTOR = 1          # Number of seconds to wait after issueing an ERASE_SECTOR command
+DELAY_PROGRAM_SECTOR = 2        # Number of seconds to wait after issueing an PROGRAM_SECTOR command
+
+BOOT_SRC_RAM = 0x00             # For F256jr Rev A -- boot from RAM 
+BOOT_SRC_FLASH = 0x01           # For F256jr Rev A -- boot from Flash 
 
 REQUEST_SYNC_BYTE = 0x55
 RESPONSE_SYNC_BYTE = 0xAA

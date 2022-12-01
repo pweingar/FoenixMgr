@@ -44,6 +44,12 @@ To send a binary file to a location in Foenix RAM:
 To reflash the Foenix flash memory (NOTE: the binary file must be exactly `flash_size` long, and the address is used as a temporary location in Foenix RAM to store the data to be flashed):
 `FoenixMgr/fnxmgr --port <port> --flash <binary file> --address <address in hex>`
 
+To reflash a particular 8KB sector of flash memory (currently F256jr only):
+`FoenixMgr/fnxmgr --port <port> --flash-sector=01 --flash <binary file>`
+
+To set a boot source (F256jr RevA boards only):
+`FoenixMgr/fnxmgr --port <port> --boot=RAM|FLASH`
+
 To display memory:
 `FoenixMgr/fnxmgr --port <port> --dump <address in hex> --count <count of bytes in hex>`
 
@@ -59,10 +65,12 @@ The count of bytes is optional and defaults to 16 ("10" in hex).
 usage: fnxmgr.py [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE]
                  [--count COUNT] [--dump ADDRESS] [--deref LABEL]
                  [--lookup LABEL] [--revision] [--flash BINARY FILE]
+                 [--flash-sector NUMBER] [--flash-bulk CSV FILE]
                  [--binary BINARY FILE] [--address ADDRESS]
                  [--upload HEX FILE] [--upload-wdc BINARY FILE]
                  [--run-pgz PGZ FILE] [--run-pgx PGX FILE]
-                 [--upload-srec SREC FILE] [--tcp-bridge HOST:PORT]
+                 [--upload-srec SREC FILE] [--boot STRING]
+                 [--tcp-bridge HOST:PORT]
 
 Manage the C256 Foenix through its debug port.
 
@@ -83,6 +91,10 @@ optional arguments:
   --revision            Display the revision code of the debug interface.
   --flash BINARY FILE   Attempt to reprogram the flash using the binary file
                         provided.
+  --flash-sector NUMBER
+                        Sector number of the 8KB sector of flash to program.
+  --flash-bulk CSV FILE
+                        Program multiple flash sectors based on a CSV file
   --binary BINARY FILE  Upload a binary file to the C256's RAM.
   --address ADDRESS     Provide the starting address of the memory block to
                         use in flashing memory.
@@ -93,6 +105,7 @@ optional arguments:
   --run-pgx PGX FILE    Upload and run a PGX binary file.
   --upload-srec SREC FILE
                         Upload a Motorola SREC hex file.
+  --boot STRING         For F256jr RevA: set boot source: RAM or FLASH
   --tcp-bridge HOST:PORT
                         Setup a TCP-serial bridge, listening on HOST:PORT and
                         relaying messages to the Foenix via the configured
@@ -115,7 +128,11 @@ This package includes four DOS batch files and Unix/Linux shell scripts to help 
 
 * `deref`: takes a label and an optional byte count (in hex). The label is used to search the LBL file of the project for an address. If the address is found, the three bytes starting at that address will be read from the Foenix memory and used as the starting address to dump memory to the screen: `deref INDEX 30`.
 
-* `flash`: takes a binary file containing a flash image and an optional address. The binary image must be exactly 512KB and is copied raw to the address provided (or the default address from the INI file). The existing flash data is erased and replaced by the data in the BIN file. The script will ask for confirmation before begining the process.
+* `flash`: takes a binary file containing a flash image and an optional address. The binary image must be exactly 512KB and is copied raw to the address provided (or the default address from the INI file). The existing flash data is erased and replaced by the data in the BIN file. The script will ask for confirmation before beginning the process.
+
+* `flash_sector`: takes a sector number (in hex from 0x00 to 0x3F) and an 8KB binary file containing the image to load into that sector of flash memory. The binary file is loaded into the F256's RAM (from 0x00000 to 0x01FFF) and then copied into the correct sector of flash memory.
+
+* `flash_bulk`: takes a CSV file specifying the mapping between sector numbers and binary files and loads all the binary files into their respective flash sectors. Each file must be an 8KB binary file. The first column of the CSV file must contain the sector numbers in hex with no prefix (from 00 to 3F). The second column must contain the path to the file to load for that sector number. There must not be a column header row.
 
 ## TCP Bridge Mode
 FoenixMgr can also be configured to act as a TCP-to-serial bridge, allowing remote clients on your network to use the debug port without being physically connected to the Foenix. This can be useful if you want to undock your laptop. It's also the only solution available for Mac users, since the driver for the MaxLinear/Exar I/O chip has not been updated for more recent versions of macOS.
