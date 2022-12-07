@@ -2,6 +2,7 @@ import intelhex
 import wdc
 import foenix
 import foenix_config
+import constants
 import srec
 import re
 import sys
@@ -9,6 +10,7 @@ import argparse
 import os
 import pgz
 import pgx
+import csv
 
 from serial.tools import list_ports
 
@@ -50,6 +52,73 @@ def upload_binary(port, filename, address):
                     c256.write_block(current_addr, block)
                     current_addr += len(block)
                     block = f.read(config.chunk_size())
+            finally:
+                c256.exit_debug()
+        finally:
+            c256.close()
+
+def program_flash_sector(port, filename, sector):
+    """Program an 8KB sector of the flash memory using the contents of the C256's RAM."""
+          
+    # Sectors are always programmed from the contents of 0x00000 - 0x01FFF
+    address = 0     
+    sector_nbr = int(sector, 16)
+    print("About to upload image to sector 0x{:02X}".format(sector_nbr), flush=True)
+
+
+    if confirm("Are you sure you want to reprogram the flash sector? (y/n): "):
+        with open(filename, "rb") as f:
+            c256 = foenix.FoenixDebugPort()
+            try:
+                c256.open(port)
+                c256.enter_debug()
+                try:
+                    block = f.read(config.chunk_size())
+                    while block:
+                        c256.write_block(address, block)
+                        address += len(block)
+                        block = f.read(config.chunk_size())
+
+                    print("Binary file uploaded...", flush=True)
+                    c256.erase_flash_sector(sector_nbr)
+                    print("Flash sector erased...", flush=True)
+                    c256.program_flash_sector(sector_nbr)
+                    print("Flash sector programmed...")
+                finally:
+                    c256.exit_debug()
+            finally:
+                c256.close()
+
+def program_flash_bulk(port, csv_file):
+    """Program the flash sector by sector, given a CSV file mapping sectors to files."""
+
+    with open(csv_file, "r") as bulk_mapping:
+        c256 = foenix.FoenixDebugPort()
+        try:
+            c256.open(port)
+            c256.enter_debug()
+            try:
+                bulk_reader = csv.reader(bulk_mapping)
+                for row in bulk_reader:
+                    sector_id = row[0]
+                    sector_file = row[1]
+
+                    sector_nbr = int(sector_id, 16)
+                    print("Attempting to program sector 0x{0:02X} with {1}".format(sector_nbr, sector_file))
+
+                    with open(sector_file, "rb") as f:
+                        address = 0
+                        block = f.read(config.chunk_size())
+                        while block:
+                            c256.write_block(address, block)
+                            address += len(block)
+                            block = f.read(config.chunk_size())
+
+                        print("Binary file uploaded...", flush=True)
+                        c256.erase_flash_sector(sector_nbr)
+                        print("Flash sector erased...", flush=True)
+                        c256.program_flash_sector(sector_nbr)
+                        print("Flash sector programmed...")
             finally:
                 c256.exit_debug()
         finally:
@@ -278,6 +347,26 @@ def tcp_bridge(tcp_host_port, serial_port):
     tcp_listener = foenix.FoenixTcpBridge(tcp_host, tcp_port, serial_port)
     tcp_listener.listen()
 
+def set_boot_source(port, source):
+    """For F256jr RevA only: set the boot source for the machine"""
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        c256.enter_debug()
+        try:
+            if source == "ram":
+                print("Setting boot source to RAM...")
+                c256.set_boot_source(constants.BOOT_SRC_RAM)
+            elif source == "flash":
+                print("Setting boot source to flash...")
+                c256.set_boot_source(constants.BOOT_SRC_FLASH)
+            else:
+                print("Unknown boot source")
+            
+        finally:
+            c256.exit_debug()
+    finally:
+        c256.close()
 
 # Load the configuration file...
 config = foenix_config.FoenixConfig()
@@ -309,6 +398,12 @@ parser.add_argument("--revision", action="store_true", dest="revision",
 parser.add_argument("--flash", metavar="BINARY FILE", dest="flash_file",
                     help="Attempt to reprogram the flash using the binary file provided.")
 
+parser.add_argument("--flash-sector", metavar="NUMBER", dest="flash_sector",
+                    help="Sector number of the 8KB sector of flash to program.")
+
+parser.add_argument("--flash-bulk", metavar="CSV FILE", dest="bulk_file",
+                    help="Program multiple flash sectors based on a CSV file")
+
 parser.add_argument("--binary", metavar="BINARY FILE", dest="binary_file",
                     help="Upload a binary file to the C256's RAM.")
 
@@ -331,6 +426,9 @@ parser.add_argument("--run-pgx", metavar="PGX FILE", dest="pgx_file",
 parser.add_argument("--upload-srec", metavar="SREC FILE", dest="srec_file",
                     help="Upload a Motorola SREC hex file.")
 
+parser.add_argument("--boot", metavar="STRING", dest="boot_source",
+                    help="For F256jr RevA: set boot source: RAM or FLASH")
+
 parser.add_argument("--tcp-bridge", metavar="HOST:PORT", dest="tcp_host_port",
                     help="Setup a TCP-serial bridge, listening on HOST:PORT and relaying messages to the Foenix via " +
                          "the configured serial port")
@@ -342,7 +440,11 @@ try:
         list_serial_ports()
 
     elif options.port != "":
-        if options.hex_file:
+        if options.boot_source:
+            source = options.boot_source.lower()
+            set_boot_source(options.port, source)
+            
+        elif options.hex_file:
             send(options.port, options.hex_file)
 
         elif options.pgz_file:
@@ -376,10 +478,18 @@ try:
             upload_binary(options.port, options.binary_file, options.address)
 
         elif options.address and options.flash_file:
-            program_flash(options.port, options.flash_file, options.address)
+            if options.flash_sector:
+                # If sector number provided, program just that sector
+                program_flash_sector(options.port, options.flash_file, options.flash_sector)
+            else:
+                # Otherwise, program the entire flash memory
+                program_flash(options.port, options.flash_file, options.address)
 
         elif options.tcp_host_port:
             tcp_bridge(options.tcp_host_port, options.port)
+
+        elif options.bulk_file:
+            program_flash_bulk(options.port, options.bulk_file)
 
         else:
             parser.print_help()

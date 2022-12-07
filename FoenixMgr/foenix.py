@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import serial
 import socket
+import time
 import constants
 import foenix_config
 
@@ -42,11 +43,28 @@ class FoenixDebugPort:
         """Send the command to have the C256 Foenix erase its flash memory."""
         self.transfer(constants.CMD_ERASE_FLASH, 0, 0, 0)
 
+    def erase_flash_sector(self, sector):
+        """Send the command to have the Foenix machine erase an 8KB sector of flash."""
+
+        # NOTE: This code is written assuming that sectors are 8KB blocks, but that the
+        #       physical hardware is erasing two consecutive 4KB blocks
+        self.transfer(constants.CMD_ERASE_SECTOR, (sector * 2) << 16, 0, 0)
+        time.sleep(constants.DELAY_ERASE_SECTOR)
+        self.transfer(constants.CMD_ERASE_SECTOR, (sector * 2 + 1) << 16, 0, 0)
+        time.sleep(constants.DELAY_ERASE_SECTOR)
+
     def get_revision(self):
         """Gets the revision code for the debug interface.
         RevB2's revision code is 0, RevC4A is 1."""
         self.transfer(constants.CMD_REVISION, 0, 0, 0)
         return self.status1
+
+    def program_flash_sector(self, sector):
+        """Send the command to have the Foenix reprogram an 8KB sector of its flash memory."""
+
+        # NOTE: this command assumes the data to program is already loaded into 0x00000 - 0x02000 in system RAM.
+        self.transfer(constants.CMD_PROGRAM_SECTOR, (sector * 2) << 16, 0, 0)
+        time.sleep(constants.DELAY_PROGRAM_SECTOR)
 
     def program_flash(self, address):
         """Send the command to have the C256 Foenix reprogram its flash memory.
@@ -60,6 +78,13 @@ class FoenixDebugPort:
     def read_block(self, address, length):
         """Read a block of data of the specified length from the specified starting address of the C256's memory."""
         return self.transfer(constants.CMD_READ_MEM, address, 0, length)
+
+    def set_boot_source(self, source):
+        """Sets whether the system should boot from the RAM LUTs (0) or the Flash LUTs (1)."""
+        if source == constants.BOOT_SRC_RAM:
+            return self.transfer(constants.CMD_BOOT_RAM, 0, 0, 0)
+        elif source == constants.BOOT_SRC_FLASH:
+            return self.transfer(constants.CMD_BOOT_FLASH, 0, 0, 0)
 
     def readbyte(self):
         b = self.connection.read(1)
@@ -122,11 +147,11 @@ class FoenixDebugPort:
         while c != constants.RESPONSE_SYNC_BYTE:
             c = self.readbyte()
 
-        # print('Got 0xAA')
-
         read_bytes = 0
 
         if c == constants.RESPONSE_SYNC_BYTE:
+
+            # print('Got 0xAA')
 
             self.status0 = self.readbyte()
             self.status1 = self.readbyte()
@@ -136,7 +161,7 @@ class FoenixDebugPort:
 
             read_lrc = self.readbyte()
 
-        # print("Status: {:X}, {:X}".format(self.status0, self.status1))
+        # print("Status: 0x{:02X}, 0x{:02X}".format(self.status0, self.status1))
 
         return read_bytes
 
