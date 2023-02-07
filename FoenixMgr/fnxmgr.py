@@ -310,7 +310,7 @@ def copy_file(port, filename):
                         chunk_offset += block_size
 
                     # load the pgx
-                    pcopy.open(os.path.expandvars('$FOENIXMGR/pcopy.pgx'))
+                    pcopy.open(os.path.expandvars('$FOENIXMGR/tools/pgx/pcopy.pgx'))
                     pcopy.set_handler(lambda address, data: c256.write_block(address, data))
                     pcopy.read_blocks()
 
