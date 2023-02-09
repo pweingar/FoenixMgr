@@ -1,0 +1,4 @@
+
+# Copy a file from the PC to the SDCARD on Foenix
+
+python $FOENIXMGR/FoenixMgr/fnxmgr.py --copy $1
