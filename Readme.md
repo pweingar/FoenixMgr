@@ -66,7 +66,7 @@ usage: fnxmgr.py [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE]
                  [--count COUNT] [--dump ADDRESS] [--deref LABEL]
                  [--lookup LABEL] [--revision] [--flash BINARY FILE]
                  [--flash-sector NUMBER] [--flash-bulk CSV FILE]
-                 [--binary BINARY FILE] [--address ADDRESS]
+                 [--binary BINARY FILE] [--copy COPY FILE] [--address ADDRESS]
                  [--upload HEX FILE] [--upload-wdc BINARY FILE]
                  [--run-pgz PGZ FILE] [--run-pgx PGX FILE]
                  [--upload-srec SREC FILE] [--boot STRING]
@@ -96,6 +96,7 @@ optional arguments:
   --flash-bulk CSV FILE
                         Program multiple flash sectors based on a CSV file
   --binary BINARY FILE  Upload a binary file to the C256's RAM.
+  --copy COPY FILE      Copy a file to F256jr SDCARD.
   --address ADDRESS     Provide the starting address of the memory block to
                         use in flashing memory.
   --upload HEX FILE     Upload an Intel HEX file.
@@ -133,6 +134,10 @@ This package includes four DOS batch files and Unix/Linux shell scripts to help 
 * `flash_sector`: takes a sector number (in hex from 0x00 to 0x3F) and an 8KB binary file containing the image to load into that sector of flash memory. The binary file is loaded into the F256's RAM (from 0x00000 to 0x01FFF) and then copied into the correct sector of flash memory.
 
 * `flash_bulk`: takes a CSV file specifying the mapping between sector numbers and binary files and loads all the binary files into their respective flash sectors. Each file must be an 8KB binary file. The first column of the CSV file must contain the sector numbers in hex with no prefix (from 00 to 3F). The second column must contain the path to the file to load for that sector number. There must not be a column header row.
+
+## Copy to a F256 SD Card
+
+A command `pcopy` has been added that allows the user to upload a file to an SD card on an F256 (not supported on other Foenix devices). The command makes use of a PGX file that is uploaded to run on the F256 along with the file to copy. The source for this PGX file can be found at: https://github.com/dwsJason/f256/tree/develop/merlin32/pcopy. The `pcopy` feature is a contribution from dwsJason. Thanks!
 
 ## TCP Bridge Mode
 FoenixMgr can also be configured to act as a TCP-to-serial bridge, allowing remote clients on your network to use the debug port without being physically connected to the Foenix. This can be useful if you want to undock your laptop. It's also the only solution available for Mac users, since the driver for the MaxLinear/Exar I/O chip has not been updated for more recent versions of macOS.
