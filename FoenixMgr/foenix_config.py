@@ -23,6 +23,25 @@ class FoenixConfig:
         self._timeout = int(config['DEFAULT'].get('timeout', '60'), 10)
         self._cpu = config['DEFAULT'].get('cpu', '65c02')
 
+    def set_target(self, machine_name):
+        """Set the name of the target machine."""
+
+        machine_name = machine_name.lower()
+
+        self._flash_page_size = 0
+        self._flash_sector_size = 0
+        self._ram_size = 8
+
+        if machine_name == "fnx1591":
+            self._flash_page_size = 8
+            self._ram_size = 8
+            self._flash_sector_size = 32
+
+        elif machine_name == "f256k" or machine_name == "f256jr":
+            self._flash_page_size = 8
+            self._ram_size = 8
+            self._flash_sector_size = 8
+
     def flash_size(self):
         """Return the required size of the flash binary file in bytes."""
         return self._flash_size
@@ -54,3 +73,23 @@ class FoenixConfig:
     def cpu(self):
         """Return the CPU of the target machine."""
         return self._cpu
+
+    def flash_page_size(self):
+        """
+        Return the size of the largest block of memory that can be copied to flash at one time (in KB).
+        If zero, the machine does not support paged programming of the flash memory.
+        """
+        return self._flash_page_size
+
+    def flash_sector_size(self):
+        """
+        Return the size of the flash sector (in KB).
+        If zero, the machine does not support paged programming of the flash memory.
+        """
+        return self._flash_sector_size
+
+    def ram_size(self):
+        """
+        Number of bytes in RAM that can be used to write to flash (in KB)
+        """
+        return self._ram_size
