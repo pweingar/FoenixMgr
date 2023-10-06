@@ -262,7 +262,7 @@ def copy_file(port, filename):
     with open(filename, "rb") as f:
         filesize = os.path.getsize(filename);
 
-        if filesize < (8*65536)-1024:
+        if filesize < ((7*65536)-(9*1024)):
             c256 = foenix.FoenixDebugPort()
             try:
                 blocks = f.read(filesize)
