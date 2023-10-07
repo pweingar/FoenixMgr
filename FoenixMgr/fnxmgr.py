@@ -288,13 +288,12 @@ def copy_file(port, filename):
             c256 = foenix.FoenixDebugPort()
             try:
                 blocks = f.read(filesize)
-                #crc32 = zlib.crc32(blocks)
                 crc32 = mycrc(blocks)
-
 
                 c256.open(port)
                 c256.enter_debug()
-                pcopy = pgx.PGXBinFile()
+
+                # Load Filedata into RAM
 
                 try:
                     current_addr = 0x10000
@@ -331,10 +330,9 @@ def copy_file(port, filename):
                         total_length -= block_size
                         chunk_offset += block_size
 
-                    # load the pgx
-                    pcopy.open(os.path.expandvars('$FOENIXMGR/tools/pgx/pcopy.pgx'))
-                    pcopy.set_handler(lambda address, data: c256.write_block(address, data))
-                    pcopy.read_blocks()
+                    # Let Firmware know we have a copy request
+                    # "COPYFILE"
+                    c256.write_block(0x0080, bytes([0x43,0x4f,0x50,0x59,0x46,0x49,0x4c,0x45]))
 
                 finally:
                     c256.exit_debug()
