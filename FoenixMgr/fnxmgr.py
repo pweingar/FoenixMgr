@@ -61,11 +61,22 @@ def upload_binary(port, filename, address):
 def program_flash_sector(port, filename, sector):
     """Program an 8KB sector of the flash memory using the contents of the C256's RAM."""
           
+    if config.flash_page_size() == 0 or config.flash_sector_size() == 0:
+        print("Unable to flash a sector for the current target machine.")
+        print("If your machine supports programming flash sectors, use the --target option.")
+        sys.exit(1)
+
     # Sectors are always programmed from the contents of 0x00000 - 0x01FFF
     address = 0     
-    sector_nbr = int(sector, 16)
-    print("About to upload image to sector 0x{:02X}".format(sector_nbr), flush=True)
+    page_size = config.flash_page_size()            # Get the number of bytes we'll write to flash at a time
+    sector_size = config.flash_sector_size()        # Get the number of bytes in "sector" of flash
+    pages = int(sector_size / page_size)            # Total number of pages per sector
+    sector_nbr = int(sector, 16)                    # Get the desired sector to write to
+    page_nbr = sector_nbr * pages                   # Convert that to a page number
 
+    written = 0                                     # Number of bytes written to flash so far
+
+    print("About to upload image to sector 0x{:02X}".format(sector_nbr), flush=True)
 
     if confirm("Are you sure you want to reprogram the flash sector? (y/n): "):
         with open(filename, "rb") as f:
@@ -74,17 +85,28 @@ def program_flash_sector(port, filename, sector):
                 c256.open(port)
                 c256.enter_debug()
                 try:
-                    block = f.read(config.chunk_size())
-                    while block:
+                    to_read = min(config.chunk_size(), sector_size * 1024 - written)
+                    block = f.read(to_read)
+                    while block and written < sector_size * 1024:
                         c256.write_block(address, block)
+                        written += len(block)
                         address += len(block)
-                        block = f.read(config.chunk_size())
+                        if address >= config.ram_size() * 1024:
+                            c256.erase_flash_sector(page_nbr)
+                            print("Flash page {} erased...".format(page_nbr), flush=True)
+                            c256.program_flash_sector(page_nbr)
+                            print("Flash page {} programmed...".format(page_nbr))
+                            page_nbr = page_nbr + 1
+                            address = 0
+                                
+                        to_read = min(config.chunk_size(), sector_size * 1024 - written)
+                        block = f.read(to_read)
 
-                    print("Binary file uploaded...", flush=True)
-                    c256.erase_flash_sector(sector_nbr)
-                    print("Flash sector erased...", flush=True)
-                    c256.program_flash_sector(sector_nbr)
-                    print("Flash sector programmed...")
+                    if address > 0:
+                        c256.erase_flash_sector(page_nbr)
+                        print("Flash page {} erased...".format(page_nbr), flush=True)
+                        c256.program_flash_sector(page_nbr)
+                        print("Flash page {} programmed...".format(page_nbr))
                 finally:
                     c256.exit_debug()
             finally:
@@ -541,7 +563,10 @@ parser.add_argument("--upload-srec", metavar="SREC FILE", dest="srec_file",
                     help="Upload a Motorola SREC hex file.")
 
 parser.add_argument("--boot", metavar="STRING", dest="boot_source",
-                    help="For F256jr RevA: set boot source: RAM or FLASH")
+                    help="For F256k: set boot source: RAM or FLASH")
+
+parser.add_argument("--target", metavar="STRING", dest="target_machine",
+                    help="Set the target machine")
 
 parser.add_argument("--tcp-bridge", metavar="HOST:PORT", dest="tcp_host_port",
                     help="Setup a TCP-serial bridge, listening on HOST:PORT and relaying messages to the Foenix via " +
@@ -554,6 +579,11 @@ try:
         list_serial_ports()
 
     elif options.port != "":
+        if options.target_machine:
+            config.set_target(options.target_machine)
+        else:
+            config.set_target("unknown")
+
         if options.boot_source:
             source = options.boot_source.lower()
             set_boot_source(options.port, source)

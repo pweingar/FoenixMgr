@@ -28,7 +28,9 @@ class PGZBinFile:
 
     def read_blocks(self):
         # Header is lower case z: address and size fields are four bytes long
-        if self.data[0] == 'z':
+        print("Initial {:x}".format(self.data[0]))
+
+        if self.data[0] == 0x7a:
             self.address_size = 4
         elif self.data[0] == 0x5a:
             # Header is upper case Z: address and size fields are three bytes long
@@ -68,8 +70,12 @@ class PGZBinFile:
                     # and you have the crossdev tools installed
                     self.handler(0x0080, bytes([0x43,0x52,0x4f,0x53,0x53,0x44,0x45,0x56]))
                     self.handler(0x0088, bytes([addr & 0xff, (addr >> 8) & 0xff]))
-
-                # TODO: generalize this to support 68000 machines
+              
+                elif self.cpu == "m68k":
+                    print("CPU m68k")
+                    # Point the reset vector to our reset routine
+                    print("Starting address {:x}".format(addr))
+                    self.handler(4, bytes([(addr>>24) & 0xff, (addr>>16) & 0xff, (addr>>8) & 0xff, addr & 0xff]))
 
             elif addr > 0:
                 # JGA Support for large blocks

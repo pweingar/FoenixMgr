@@ -27,6 +27,14 @@ The setting `port`, `labels`, and `address` can be over-ridden by command line o
 
 FoenixMgr will look for the configuration file in your current directory, in your user home directory, or in the directory indicated by the environment variable `FOENIXMGR`.
 
+## Target Machine Names
+
+As the range of Foenix machines increases, this script is becoming more and more unwieldy. To try to help manage this, a new target option has been added. This option will be used to specify machine-specific configurations in such a way that a user can use the script with multiple machines without having to edit the configuration file every time. Currently, it is only being used for the flash sector option, and the only machine names supported are `f256jr`, `f256jr`, and `fnx1591`... the only machines that support this capability. As an example of its use, the following command will send the file `dos1581.bin` to the FNX1591 drive on COM6, and upload it to flash sector 1 (strictly speaking, that is not flash sector 6, but the 6th 32 KB slot in the FNX1591's flash memory).
+
+```
+python FoenixMgr\fnxmgr.py --port COM6 --target fnx1591 --flash-sector 1 --flash dos1581.bin
+```
+
 ## Command Line Arguments
 
 To list the available serial ports on your computer:
@@ -44,10 +52,10 @@ To send a binary file to a location in Foenix RAM:
 To reflash the Foenix flash memory (NOTE: the binary file must be exactly `flash_size` long, and the address is used as a temporary location in Foenix RAM to store the data to be flashed):
 `FoenixMgr/fnxmgr --port <port> --flash <binary file> --address <address in hex>`
 
-To reflash a particular 8KB sector of flash memory (currently F256jr only):
-`FoenixMgr/fnxmgr --port <port> --flash-sector=01 --flash <binary file>`
+To reflash a particular 8KB sector of flash memory (currently F256jr, F256k, and FNX1591 only):
+`FoenixMgr/fnxmgr --target <machine name> --port <port> --flash-sector=01 --flash <binary file>`
 
-To set a boot source (F256jr RevA boards only):
+To set a boot source (F256jr RevA boards and F256k):
 `FoenixMgr/fnxmgr --port <port> --boot=RAM|FLASH`
 
 To display memory:
@@ -106,7 +114,8 @@ optional arguments:
   --run-pgx PGX FILE    Upload and run a PGX binary file.
   --upload-srec SREC FILE
                         Upload a Motorola SREC hex file.
-  --boot STRING         For F256jr RevA: set boot source: RAM or FLASH
+  --boot STRING         For F256k: set boot source: RAM or FLASH
+  --target STRING       Set the target machine (current support is for f256jr, f256k, and fnx1591)
   --tcp-bridge HOST:PORT
                         Setup a TCP-serial bridge, listening on HOST:PORT and
                         relaying messages to the Foenix via the configured
@@ -131,7 +140,7 @@ This package includes four DOS batch files and Unix/Linux shell scripts to help 
 
 * `flash`: takes a binary file containing a flash image and an optional address. The binary image must be exactly 512KB and is copied raw to the address provided (or the default address from the INI file). The existing flash data is erased and replaced by the data in the BIN file. The script will ask for confirmation before beginning the process.
 
-* `flash_sector`: takes a sector number (in hex from 0x00 to 0x3F) and an 8KB binary file containing the image to load into that sector of flash memory. The binary file is loaded into the F256's RAM (from 0x00000 to 0x01FFF) and then copied into the correct sector of flash memory.
+* `flash_sector`: takes a target machine name, a sector number (in hex from 0x00 to 0x3F), and an 8KB binary file containing the image to load into that sector of flash memory. The binary file is loaded into the F256's RAM (from 0x00000 to 0x01FFF) and then copied into the correct sector of flash memory. Machine names supported include `f256jr`, `f256k`, `fnx1591`.
 
 * `flash_bulk`: takes a CSV file specifying the mapping between sector numbers and binary files and loads all the binary files into their respective flash sectors. Each file must be an 8KB binary file. The first column of the CSV file must contain the sector numbers in hex with no prefix (from 00 to 3F). The second column must contain the path to the file to load for that sector number. There must not be a column header row.
 

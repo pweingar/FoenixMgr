@@ -88,3 +88,6 @@ class PGXBinFile:
             self.handler(0x0080, bytes([0x43,0x52,0x4f,0x53,0x53,0x44,0x45,0x56]))
             self.handler(0x0088, bytes([addr & 0xff, (addr >> 8) & 0xff]))
 
+        elif self.cpu == "m68k":
+            # Point the reset vector to our reset routine
+            self.handler(0x00000004, bytes([(addr>>24) & 0xff, (addr>>16) & 0xff, (addr>>8) & 0xff, addr & 0xff]))
