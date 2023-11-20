@@ -39,6 +39,15 @@ class FoenixDebugPort:
         """
         self.transfer(constants.CMD_EXIT_DEBUG, 0, 0, 0)
 
+    def stop_cpu(self):
+        """Send the command to make stop the CPU from processing instructions (F256 only)."""
+        self.transfer(constants.CMD_STOP_CPU, 0, 0, 0)
+        
+    def start_cpu(self):
+        """Send the command to restart the CPU after a STOP (F256 only).
+        This command will not trigger a reset of the CPU."""
+        self.transfer(constants.CMD_START_CPU, 0, 0, 0)
+
     def erase_flash(self):
         """Send the command to have the C256 Foenix erase its flash memory."""
         self.transfer(constants.CMD_ERASE_FLASH, 0, 0, 0)

@@ -8,12 +8,15 @@ import re
 import sys
 import argparse
 import os
+import os.path
 import pgz
 import pgx
 import csv
 import zlib
 
 from serial.tools import list_ports
+
+STOP_FILE_NAME = "f256.stp"
 
 label_file = ""
 to_send = ""
@@ -25,17 +28,64 @@ label = ""
 def confirm(question):
     return input(question).lower().strip()[:1] == "y"
 
+def set_stop_indicator():
+    """Create a file in the file system to indicate that the F256 is stopped."""
+    try:
+        f = open(STOP_FILE_NAME, "w")
+        f.close()
+    except:
+        print("Could not create stop indicator file.")
+        sys.exit(1)
+
+def clear_stop_indicator():
+    """Remove a file from the file system to indicate that the F256 is restarted."""
+    os.remove(STOP_FILE_NAME)
+
+def is_stopped():
+    """Return true if the F256 is stopped."""
+    return os.path.isfile(STOP_FILE_NAME)
+
+def enter_debug(machine):
+    """Send the command to enter debug mode"""
+    if not is_stopped():
+    	machine.enter_debug()
+
+def exit_debug(machine):
+    """Send the command to leave debug mode"""
+    if not is_stopped():
+    	machine.exit_debug()
+
+def stop_cpu(port):
+    """Stop the CPU from processing instructions (F256 only)."""
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        c256.stop_cpu()
+        set_stop_indicator()
+    finally:
+        c256.close()
+        
+def start_cpu(port):
+    """Restart the CPU processing instructions after a stop (F256 only)."""
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        c256.start_cpu()
+        clear_stop_indicator()
+    finally:
+        c256.close()
+
 def revision(port):
     """Get the version code for the debug port."""
     c256 = foenix.FoenixDebugPort()
     try:
         c256.open(port)
-        c256.enter_debug()
+        enter_debug(c256)
         try:
             data = c256.get_revision()
             return "%X" % data
         finally:
-            c256.exit_debug()
+            exit_debug(c256)
     finally:
         c256.close()
 
@@ -45,7 +95,7 @@ def upload_binary(port, filename, address):
         c256 = foenix.FoenixDebugPort()
         try:
             c256.open(port)
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 current_addr = int(address, 16)
                 block = f.read(config.chunk_size())
@@ -54,7 +104,7 @@ def upload_binary(port, filename, address):
                     current_addr += len(block)
                     block = f.read(config.chunk_size())
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             c256.close()
 
@@ -83,7 +133,7 @@ def program_flash_sector(port, filename, sector):
             c256 = foenix.FoenixDebugPort()
             try:
                 c256.open(port)
-                c256.enter_debug()
+                enter_debug(c256)
                 try:
                     to_read = min(config.chunk_size(), sector_size * 1024 - written)
                     block = f.read(to_read)
@@ -108,7 +158,7 @@ def program_flash_sector(port, filename, sector):
                         c256.program_flash_sector(page_nbr)
                         print("Flash page {} programmed...".format(page_nbr))
                 finally:
-                    c256.exit_debug()
+                    exit_debug(c256)
             finally:
                 c256.close()
 
@@ -119,7 +169,7 @@ def program_flash_bulk(port, csv_file):
         c256 = foenix.FoenixDebugPort()
         try:
             c256.open(port)
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 bulk_reader = csv.reader(bulk_mapping)
                 for row in bulk_reader:
@@ -143,7 +193,7 @@ def program_flash_bulk(port, csv_file):
                         c256.program_flash_sector(sector_nbr)
                         print("Flash sector programmed...")
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             c256.close()
 
@@ -160,7 +210,7 @@ def program_flash(port, filename, hex_address):
                 c256 = foenix.FoenixDebugPort()
                 try:
                     c256.open(port)
-                    c256.enter_debug()
+                    enter_debug(c256)
                     try:
                         block = f.read(config.chunk_size())
                         while block:
@@ -174,7 +224,7 @@ def program_flash(port, filename, hex_address):
                         c256.program_flash(base_address)
                         print("Flash memory programmed...")
                     finally:
-                        c256.exit_debug()
+                        exit_debug(c256)
                 finally:
                     c256.close()
     else:
@@ -186,13 +236,13 @@ def dereference(port, file, label):
     try:
         address = lookup(file, label)
         c256.open(port)
-        c256.enter_debug()
+        enter_debug(c256)
         try:
             data = c256.read_block(int(address, 16), 3)
             deref = data[2] << 16 | data[1] << 8 | data[0]
             return "%X" % deref
         finally:
-            c256.exit_debug()
+            exit_debug(c256)
     finally:
         c256.close()
 
@@ -291,7 +341,7 @@ def copy_file(port, filename):
                 crc32 = mycrc(blocks)
 
                 c256.open(port)
-                c256.enter_debug()
+                enter_debug(c256)
 
                 # Load Filedata into RAM
 
@@ -335,7 +385,7 @@ def copy_file(port, filename):
                     c256.write_block(0x0080, bytes([0x43,0x4f,0x50,0x59,0x46,0x49,0x4c,0x45]))
 
                 finally:
-                    c256.exit_debug()
+                    exit_debug(c256)
             finally:
                 c256.close()
         else:
@@ -351,12 +401,12 @@ def send_pgx(port, filename):
         infile.open(filename)
         try:
             infile.set_handler(lambda address, data: c256.write_block(address, data))
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 # Process the lines in the hex file
                 infile.read_blocks()
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             infile.close()
     finally:
@@ -371,12 +421,12 @@ def send_pgz(port, filename):
         infile.open(filename)
         try:
             infile.set_handler(lambda address, data: c256.write_block(address, data))
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 # Process the lines in the hex file
                 infile.read_blocks()
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             infile.close()
     finally:
@@ -391,12 +441,12 @@ def send_wdc(port, filename):
         infile.open(filename)
         try:
             infile.set_handler(lambda address, data: c256.write_block(address, data))
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 # Process the lines in the hex file
                 infile.read_blocks()
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             infile.close()
     finally:
@@ -411,12 +461,12 @@ def send_srec(port, filename):
         infile.open(filename)
         try:
             infile.set_handler(lambda address, data: c256.write_block(address, bytes.fromhex(data)))
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 # Process the lines in the hex file
                 infile.read_lines()
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             infile.close()
     finally:
@@ -431,12 +481,12 @@ def send(port, filename):
         infile.open(filename)
         try:
             infile.set_handler(lambda address, data: c256.write_block(address, bytes.fromhex(data)))
-            c256.enter_debug()
+            enter_debug(c256)
             try:
                 # Process the lines in the hex file
                 infile.read_lines()
             finally:
-                c256.exit_debug()
+                exit_debug(c256)
         finally:
             infile.close()
     finally:
@@ -447,13 +497,13 @@ def get(port, address, length):
     c256 = foenix.FoenixDebugPort()
     try:
         c256.open(port)
-        c256.enter_debug()
+        enter_debug(c256)
         try:
             data = c256.read_block(int(address, 16), int(length, 16))
 
             display(int(address, 16), data)
         finally:
-            c256.exit_debug()
+            exit_debug(c256)
     finally:
         c256.close()
 
@@ -483,7 +533,7 @@ def set_boot_source(port, source):
     c256 = foenix.FoenixDebugPort()
     try:
         c256.open(port)
-        c256.enter_debug()
+        enter_debug(c256)
         try:
             if source == "ram":
                 print("Setting boot source to RAM...")
@@ -495,7 +545,7 @@ def set_boot_source(port, source):
                 print("Unknown boot source")
             
         finally:
-            c256.exit_debug()
+            exit_debug(c256)
     finally:
         c256.close()
 
@@ -570,6 +620,12 @@ parser.add_argument("--tcp-bridge", metavar="HOST:PORT", dest="tcp_host_port",
                     help="Setup a TCP-serial bridge, listening on HOST:PORT and relaying messages to the Foenix via " +
                          "the configured serial port")
 
+parser.add_argument("--stop", action="store_true", dest="stop",
+                    help="Stop the CPU from processing instructions (F256 only).")
+
+parser.add_argument("--start", action="store_true", dest="start",
+                    help="Restart the CPU after a STOP (F256 only).")
+
 options = parser.parse_args()
 
 try:
@@ -585,7 +641,15 @@ try:
         if options.boot_source:
             source = options.boot_source.lower()
             set_boot_source(options.port, source)
-        
+            
+        elif options.stop:
+            stop_cpu(options.port)
+            print("Stopping the CPU...")
+
+        elif options.start:
+            start_cpu(options.port)
+            print("Starting the CPU...")
+
         elif options.copy_file:
             copy_file(options.port, options.copy_file)
                 
