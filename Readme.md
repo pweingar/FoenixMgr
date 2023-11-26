@@ -116,6 +116,7 @@ options:
                         configured serial port
   --stop                Stop the CPU from processing instructions (F256 only).
   --start               Restart the CPU after a STOP (F256 only).
+  --quiet               Suppress some printed messages.
 ```
 
 ## Batch Files

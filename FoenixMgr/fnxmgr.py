@@ -24,6 +24,7 @@ port = ""
 start_address = ""
 count = ""
 label = ""
+quiet_mode = False
 
 def confirm(question):
     return input(question).lower().strip()[:1] == "y"
@@ -48,7 +49,9 @@ def is_stopped():
 def enter_debug(machine):
     """Send the command to enter debug mode"""
     if not is_stopped():
-    	machine.enter_debug()
+        machine.enter_debug()
+    elif not quiet_mode:
+        print("CPU stopped...")
 
 def exit_debug(machine):
     """Send the command to leave debug mode"""
@@ -626,11 +629,17 @@ parser.add_argument("--stop", action="store_true", dest="stop",
 parser.add_argument("--start", action="store_true", dest="start",
                     help="Restart the CPU after a STOP (F256 only).")
 
+parser.add_argument("--quiet", action="store_true", dest="quiet",
+                    help="Suppress some printed messages.")
+
 options = parser.parse_args()
 
 try:
     if options.list_ports:
         list_serial_ports()
+        
+    if options.quiet:
+        quiet_mode = True
 
     elif options.port != "":
         if options.target_machine:
