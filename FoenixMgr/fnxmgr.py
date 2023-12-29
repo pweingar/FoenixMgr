@@ -635,11 +635,11 @@ parser.add_argument("--quiet", action="store_true", dest="quiet",
 options = parser.parse_args()
 
 try:
-    if options.list_ports:
-        list_serial_ports()
-        
     if options.quiet:
         quiet_mode = True
+        
+    if options.list_ports:
+        list_serial_ports()
 
     elif options.port != "":
         if options.target_machine:
