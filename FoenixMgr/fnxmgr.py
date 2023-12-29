@@ -200,7 +200,7 @@ def lookup(file, label):
     """Return the hex address linked to the passed label in the label file."""
     with open(file) as f:
         for line in f:
-            match = re.match('^(\S+)\s*\=\s*\$(\S+)', line)
+            match = re.match(r'^(\S+)\s*\=\s*\$(\S+)', line)
             if match:
                 if match.group(1) == label:
                     return match.group(2)
