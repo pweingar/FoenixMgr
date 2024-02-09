@@ -87,6 +87,8 @@ class PGXBinFile:
             # and you have the crossdev tools installed
             self.handler(0x0080, bytes([0x43,0x52,0x4f,0x53,0x53,0x44,0x45,0x56]))
             self.handler(0x0088, bytes([addr & 0xff, (addr >> 8) & 0xff]))
+            # Pass 0 to the kernel args extlen, at least until someone implements argument passing
+            self.handler(0x00FA, bytes([0x00, 0x00]))
 
         elif self.cpu == "m68k":
             # Point the reset vector to our reset routine
