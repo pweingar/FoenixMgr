@@ -1,10 +1,14 @@
-usage: fnxmgr.py [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE]
-                 [--count COUNT] [--dump ADDRESS] [--deref LABEL]
-                 [--lookup LABEL] [--revision] [--flash BINARY FILE]
-                 [--binary BINARY FILE] [--address ADDRESS]
-                 [--upload HEX FILE] [--upload-wdc BINARY FILE]
-                 [--run-pgz PGZ FILE] [--run-pgx PGX FILE]
-                 [--upload-srec SREC FILE] [--tcp-bridge HOST:PORT]
+usage: foenixmgr.zip [-h] [--port PORT] [--list-ports]
+                     [--label-file LABEL_FILE] [--count COUNT]
+                     [--dump ADDRESS] [--deref LABEL] [--lookup LABEL]
+                     [--revision] [--flash BINARY FILE]
+                     [--flash-sector NUMBER] [--flash-bulk CSV FILE] [--erase]
+                     [--binary BINARY FILE] [--copy COPY FILE]
+                     [--address ADDRESS] [--upload HEX FILE]
+                     [--upload-wdc BINARY FILE] [--run-pgz PGZ FILE]
+                     [--run-pgx PGX FILE] [--upload-srec SREC FILE]
+                     [--boot STRING] [--target STRING]
+                     [--tcp-bridge HOST:PORT] [--stop] [--start] [--quiet]
 
 Manage the C256 Foenix through its debug port.
 
@@ -25,7 +29,14 @@ optional arguments:
   --revision            Display the revision code of the debug interface.
   --flash BINARY FILE   Attempt to reprogram the flash using the binary file
                         provided.
+  --flash-sector NUMBER
+                        Sector number of the 8KB sector of flash to program.
+  --flash-bulk CSV FILE
+                        Program multiple flash sectors based on a CSV file
+  --erase               Erase all of flash memory. Can be used by itself or
+                        with flash-bulk
   --binary BINARY FILE  Upload a binary file to the C256's RAM.
+  --copy COPY FILE      Copy a file to F256jr SDCARD.
   --address ADDRESS     Provide the starting address of the memory block to
                         use in flashing memory.
   --upload HEX FILE     Upload an Intel HEX file.
@@ -35,7 +46,13 @@ optional arguments:
   --run-pgx PGX FILE    Upload and run a PGX binary file.
   --upload-srec SREC FILE
                         Upload a Motorola SREC hex file.
+  --boot STRING         For F256k: set boot source: RAM or FLASH
+  --target STRING       Set the target machine
   --tcp-bridge HOST:PORT
                         Setup a TCP-serial bridge, listening on HOST:PORT and
                         relaying messages to the Foenix via the configured
                         serial port
+  --stop                Stop the CPU from processing instructions (F256 only).
+  --start               Restart the CPU after a STOP (F256 only).
+  --quiet               Suppress some printed messages.
+  

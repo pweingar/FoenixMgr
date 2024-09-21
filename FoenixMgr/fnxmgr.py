@@ -131,7 +131,7 @@ def program_flash_sector(port, filename, sector):
 
     print("About to upload image to sector 0x{:02X}".format(sector_nbr), flush=True)
 
-    if confirm("Are you sure you want to reprogram the flash sector? (y/n): "):
+    if confirm("Are you sure you want to reprogram the flash sector? (y/n): "):           
         with open(filename, "rb") as f:
             c256 = foenix.FoenixDebugPort()
             try:
@@ -165,7 +165,7 @@ def program_flash_sector(port, filename, sector):
             finally:
                 c256.close()
 
-def program_flash_bulk(port, csv_file):
+def program_flash_bulk(port, csv_file, pre_erase):
     """Program the flash sector by sector, given a CSV file mapping sectors to files."""
 
     with open(csv_file, "r") as bulk_mapping:
@@ -174,6 +174,10 @@ def program_flash_bulk(port, csv_file):
             c256.open(port)
             enter_debug(c256)
             try:
+                if pre_erase:
+                    c256.erase_flash()
+                    print("Flash memory erased...", flush=True)
+				
                 bulk_reader = csv.reader(bulk_mapping)
                 for row in bulk_reader:
                     sector_id = row[0]
@@ -191,10 +195,27 @@ def program_flash_bulk(port, csv_file):
                             block = f.read(config.chunk_size())
 
                         print("Binary file uploaded...", flush=True)
-                        c256.erase_flash_sector(sector_nbr)
-                        print("Flash sector erased...", flush=True)
+                        if not pre_erase:
+                            c256.erase_flash_sector(sector_nbr)
+                            print("Flash sector erased...", flush=True)
                         c256.program_flash_sector(sector_nbr)
                         print("Flash sector programmed...")
+            finally:
+                exit_debug(c256)
+        finally:
+            c256.close()
+            
+def erase_flash(port):
+    """Erase the flash memory."""
+
+    if confirm("Are you sure you want to erase the flash memory? (y/n): "):
+        c256 = foenix.FoenixDebugPort()
+        try:
+            c256.open(port)
+            enter_debug(c256)
+            try:
+                c256.erase_flash()
+                print("Flash memory erased...", flush=True)
             finally:
                 exit_debug(c256)
         finally:
@@ -207,7 +228,7 @@ def program_flash(port, filename, hex_address):
     address = base_address
     print("About to upload image to address 0x{:X}".format(address), flush=True)
 
-    if os.path.getsize(filename) == config.flash_size():
+    if (1) or (os.path.getsize(filename) == config.flash_size()):
         if confirm("Are you sure you want to reprogram the flash memory? (y/n): "):
             with open(filename, "rb") as f:
                 c256 = foenix.FoenixDebugPort()
@@ -588,6 +609,9 @@ parser.add_argument("--flash-sector", metavar="NUMBER", dest="flash_sector",
 parser.add_argument("--flash-bulk", metavar="CSV FILE", dest="bulk_file",
                     help="Program multiple flash sectors based on a CSV file")
 
+parser.add_argument("--erase", action="store_true", dest="erase_flash",
+                    help="Erase all of flash memory. Can be used by itself or with flash-bulk")
+
 parser.add_argument("--binary", metavar="BINARY FILE", dest="binary_file",
                     help="Upload a binary file to the C256's RAM.")
 
@@ -707,8 +731,17 @@ try:
             tcp_bridge(options.tcp_host_port, options.port)
 
         elif options.bulk_file:
-            program_flash_bulk(options.port, options.bulk_file)
-
+            if options.erase_flash:
+                # Erase all of flash before writing the bulk files
+                program_flash_bulk(options.port, options.bulk_file, True)
+            else:
+                # Erase each sector individually before writing the sector
+                # Erase only those sectors to be written
+                program_flash_bulk(options.port, options.bulk_file, False)
+            
+        elif options.erase_flash:
+            erase_flash(options.port)
+            
         else:
             parser.print_help()
     else:

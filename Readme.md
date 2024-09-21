@@ -71,37 +71,54 @@ If you have a 64TASS label file (`*.lbl`), you can provide that as an option and
 If you have a 64TASS label file (`*.lbl`), you can provide that as an option and display the contents of a memory location by deferencing the pointer at a location in the label file:
 `FoenixMgr/fnxmgr --port <port> --label-file <label file> --deref <label> --count <count of bytes in hex>`
 
+To erase the flash memory of a Foenix machine, you can use the `--erase` command:
+`FoenixMgr/fnxmgr --port <port> --erase`
+This command can be used with the `--flash-bulk` command, in which case the entire flash memory will be erased before loading the individual sectors (normally, `--flash-bulk` will erase each sector to be programmed just before programming it and will not erase other sectors in flash memory).
+
 The count of bytes is optional and defaults to 16 ("10" in hex).
 
 ```
-usage: FoenixMgr.zip [-h] [--port PORT] [--list-ports] [--label-file LABEL_FILE] [--count COUNT] [--dump ADDRESS]
-                     [--deref LABEL] [--lookup LABEL] [--revision] [--flash BINARY FILE] [--flash-sector NUMBER]
-                     [--flash-bulk CSV FILE] [--binary BINARY FILE] [--copy COPY FILE] [--address ADDRESS]
-                     [--upload HEX FILE] [--upload-wdc BINARY FILE] [--run-pgz PGZ FILE] [--run-pgx PGX FILE]
-                     [--upload-srec SREC FILE] [--boot STRING] [--target STRING] [--tcp-bridge HOST:PORT] [--stop]
-                     [--start]
+usage: foenixmgr.zip [-h] [--port PORT] [--list-ports]
+                     [--label-file LABEL_FILE] [--count COUNT]
+                     [--dump ADDRESS] [--deref LABEL] [--lookup LABEL]
+                     [--revision] [--flash BINARY FILE]
+                     [--flash-sector NUMBER] [--flash-bulk CSV FILE] [--erase]
+                     [--binary BINARY FILE] [--copy COPY FILE]
+                     [--address ADDRESS] [--upload HEX FILE]
+                     [--upload-wdc BINARY FILE] [--run-pgz PGZ FILE]
+                     [--run-pgx PGX FILE] [--upload-srec SREC FILE]
+                     [--boot STRING] [--target STRING]
+                     [--tcp-bridge HOST:PORT] [--stop] [--start] [--quiet]
 
 Manage the C256 Foenix through its debug port.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
-  --port PORT           Specify the serial port to use to access the C256 debug port.
+  --port PORT           Specify the serial port to use to access the C256
+                        debug port.
   --list-ports          List available serial ports.
   --label-file LABEL_FILE
-                        Specify the label file to use for dereference and lookup
+                        Specify the label file to use for dereference and
+                        lookup
   --count COUNT         the number of bytes to read
   --dump ADDRESS        Read memory from the C256's memory and display it.
-  --deref LABEL         Lookup the address stored at LABEL and display the memory there.
-  --lookup LABEL        Display the memory starting at the address indicated by the label.
+  --deref LABEL         Lookup the address stored at LABEL and display the
+                        memory there.
+  --lookup LABEL        Display the memory starting at the address indicated
+                        by the label.
   --revision            Display the revision code of the debug interface.
-  --flash BINARY FILE   Attempt to reprogram the flash using the binary file provided.
+  --flash BINARY FILE   Attempt to reprogram the flash using the binary file
+                        provided.
   --flash-sector NUMBER
                         Sector number of the 8KB sector of flash to program.
   --flash-bulk CSV FILE
                         Program multiple flash sectors based on a CSV file
+  --erase               Erase all of flash memory. Can be used by itself or
+                        with flash-bulk
   --binary BINARY FILE  Upload a binary file to the C256's RAM.
   --copy COPY FILE      Copy a file to F256jr SDCARD.
-  --address ADDRESS     Provide the starting address of the memory block to use in flashing memory.
+  --address ADDRESS     Provide the starting address of the memory block to
+                        use in flashing memory.
   --upload HEX FILE     Upload an Intel HEX file.
   --upload-wdc BINARY FILE
                         Upload a WDCTools binary hex file. (WDCLN.EXE -HZ)
@@ -112,8 +129,9 @@ options:
   --boot STRING         For F256k: set boot source: RAM or FLASH
   --target STRING       Set the target machine
   --tcp-bridge HOST:PORT
-                        Setup a TCP-serial bridge, listening on HOST:PORT and relaying messages to the Foenix via the
-                        configured serial port
+                        Setup a TCP-serial bridge, listening on HOST:PORT and
+                        relaying messages to the Foenix via the configured
+                        serial port
   --stop                Stop the CPU from processing instructions (F256 only).
   --start               Restart the CPU after a STOP (F256 only).
   --quiet               Suppress some printed messages.
