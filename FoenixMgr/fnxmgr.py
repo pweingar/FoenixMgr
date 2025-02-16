@@ -372,7 +372,7 @@ def copy_file(port, filename):
                 try:
                     current_addr = 0x10000
                     # Filename to char array
-                    filename_block = bytes(filename, "utf-8")
+                    filename_block = bytes(os.path.basename(filename), "utf-8")
                     # extend, zero terminate
                     zero_block = bytes([ 0x00 ])
 
