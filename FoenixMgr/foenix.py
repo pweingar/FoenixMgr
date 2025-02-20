@@ -82,6 +82,17 @@ class FoenixDebugPort:
 
     def write_block(self, address, data):
         """Write a block of data to the specified starting address in the C256's memory."""
+
+        # If the CPU is a 680x0 (32-bit architecture) make sure the data is a multiple of 4 bytes
+        # Data on these CPUs must be loaded as 32-bit words.
+        config = foenix_config.FoenixConfig()
+        cpu = config.cpu()
+        if cpu == "68040" or cpu == "68060":
+            len_mod = len(data) % 4
+            if len_mod > 0:
+                data += b"\0" *  (4 - len_mod)
+
+        # Send the data
         self.transfer(constants.CMD_WRITE_MEM, address, data, 0)
 
     def read_block(self, address, length):
