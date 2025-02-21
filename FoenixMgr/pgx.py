@@ -13,10 +13,11 @@ class PGXBinFile:
     data = 0
     handler = 0
     cpu = ""
+    config = 0
 
     def __init__(self):
-        config = foenix_config.FoenixConfig()
-        self.cpu = config.cpu()
+        self.config = foenix_config.FoenixConfig()
+        self.cpu = self.config.cpu()
         pass
 
     def open(self, filename):
@@ -49,6 +50,10 @@ class PGXBinFile:
                 sys.exit(1)
         elif pgx_cpu == constants.PGX_CPU_65C02:
             if self.cpu != "65C02" and self.cpu != "65c02":
+                print("PGX is built for the wrong CPU.")
+                sys.exit(1)
+        elif pgx_cpu == constants.PGX_CPU_680X0:
+            if not self.config.cpu_is_680X0():
                 print("PGX is built for the wrong CPU.")
                 sys.exit(1)
         else:
@@ -90,6 +95,6 @@ class PGXBinFile:
             # Pass 0 to the kernel args extlen, at least until someone implements argument passing
             self.handler(0x00FA, bytes([0x00, 0x00]))
 
-        elif self.cpu == "m68k":
+        elif self.config.cpu_is_680X0():
             # Point the reset vector to our reset routine
             self.handler(0x00000004, bytes([(addr>>24) & 0xff, (addr>>16) & 0xff, (addr>>8) & 0xff, addr & 0xff]))

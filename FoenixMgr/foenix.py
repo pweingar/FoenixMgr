@@ -4,6 +4,7 @@ import socket
 import time
 import constants
 import foenix_config
+import block
 
 class FoenixDebugPort:
     """Provide the connection to a C256 Foenix debug port."""
@@ -13,6 +14,7 @@ class FoenixDebugPort:
 
     def open(self, port):
         """Open a connection to the C256 Foenix."""
+
         if ':' in port:
             # A pretty weak test, looking for something like '192.168.1.114:2560'
             self.connection = SocketFoenixConnection()
@@ -31,12 +33,26 @@ class FoenixDebugPort:
 
     def enter_debug(self):
         """Send the command to make the C256 Foenix enter its debug mode."""
+
+        config = foenix_config.FoenixConfig()
+        if config.cpu_is_m68k_32():
+            # Set up a memory block list when talking to a 32-bit 680x0 machine
+            self._blocks = block.MemoryBlockList()
+
         self.transfer(constants.CMD_ENTER_DEBUG, 0, 0, 0)
 
     def exit_debug(self):
         """Send the command to make the C256 Foenix leave its debug mode.
         This will make the C256 reset.
         """
+
+        # For the 32-bit 680x0 machines, write the data blocks we saved before leaving debug mode
+        config = foenix_config.FoenixConfig()
+        if config.cpu_is_m68k_32():
+            self._blocks.coalesce()
+            self._blocks.pad32()
+            self._blocks.output(512, lambda addr, data : self.transfer(constants.CMD_WRITE_MEM, addr, data, 0))
+
         self.transfer(constants.CMD_EXIT_DEBUG, 0, 0, 0)
 
     def stop_cpu(self):
@@ -84,16 +100,14 @@ class FoenixDebugPort:
         """Write a block of data to the specified starting address in the C256's memory."""
 
         # If the CPU is a 680x0 (32-bit architecture) make sure the data is a multiple of 4 bytes
-        # Data on these CPUs must be loaded as 32-bit words.
+        # Data on these CPUs must be loaded as 32-bit words, so save them in memory blocks
+        # These memory blocks will be output to the debug port just before closing it
         config = foenix_config.FoenixConfig()
-        cpu = config.cpu()
-        if cpu == "68040" or cpu == "68060":
-            len_mod = len(data) % 4
-            if len_mod > 0:
-                data += b"\0" *  (4 - len_mod)
-
-        # Send the data
-        self.transfer(constants.CMD_WRITE_MEM, address, data, 0)
+        if config.cpu_is_m68k_32():
+            self._blocks.add(address, data)
+        else:
+            # Otherwise, just send the data
+            self.transfer(constants.CMD_WRITE_MEM, address, data, 0)
 
     def read_block(self, address, length):
         """Read a block of data of the specified length from the specified starting address of the C256's memory."""

@@ -11,10 +11,11 @@ class PGZBinFile:
     data = 0
     handler = 0
     cpu = ""
+    config = 0
 
     def __init__(self):
-        config = foenix_config.FoenixConfig()
-        self.cpu = config.cpu()
+        self.config = foenix_config.FoenixConfig()
+        self.cpu = self.config.cpu()
         pass
 
     def open(self, filename):
@@ -73,7 +74,7 @@ class PGZBinFile:
                     # Pass 0 to the kernel args extlen, at least until someone implements argument passing
                     self.handler(0x00FA, bytes([0x00, 0x00]))
               
-                elif self.cpu == "m68k":
+                elif self.config.cpu_is_680X0():
                     print("CPU m68k")
                     # Point the reset vector to our reset routine
                     print("Starting address {:x}".format(addr))

@@ -73,6 +73,20 @@ class FoenixConfig:
     def cpu(self):
         """Return the CPU of the target machine."""
         return self._cpu
+    
+    def cpu_is_680X0(self):
+        """Return true if the CPU is a Motorola 680X0"""
+        if self.cpu() == "m68k" or self.cpu() == "68000" or self.cpu() == "68040" or self.cpu() == "68060":
+            return True
+        else:
+            return False
+        
+    def cpu_is_m68k_32(self):
+        """Return true if the CPU is a 32-bit Motorola 680X0"""
+        if self.cpu() == "68040" or self.cpu() == "68060":
+            return True
+        else:
+            return False
 
     def flash_page_size(self):
         """
