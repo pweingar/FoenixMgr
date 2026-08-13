@@ -7,6 +7,10 @@ import foenix_config
 
 class FoenixDebugPort:
     """Provide the connection to a C256 Foenix debug port."""
+    KEYBOARD_DATA_REGISTER = 0xF01642
+    OPTICAL_KEYBOARD_SNAPSHOT_REGISTER = 0xF01DE0
+    OPTICAL_KEYBOARD_SNAPSHOT_SIZE = 16
+
     connection = None
     status0 = 0
     status1 = 0
@@ -126,6 +130,23 @@ class FoenixDebugPort:
     def read_block(self, address, length):
         """Read a block of data of the specified length from the specified starting address of the C256's memory."""
         return self.transfer(constants.CMD_READ_MEM, address, 0, length)
+
+    def inject_keyboard_scan_codes(self, scan_codes):
+        """Write raw PS/2 Set-2 bytes into the K2/JR2 keyboard FIFO."""
+        for scan_code in scan_codes:
+            if not 0 <= scan_code <= 0xFF:
+                raise ValueError("keyboard scan code must fit in one byte")
+            self.write_block(self.KEYBOARD_DATA_REGISTER, bytes([scan_code]))
+
+    def inject_optical_keyboard_snapshot(self, snapshot):
+        """Stage one complete K2 optical-keyboard matrix image."""
+        if len(snapshot) != self.OPTICAL_KEYBOARD_SNAPSHOT_SIZE:
+            raise ValueError(
+                "optical keyboard snapshot must contain {} bytes, got {}".format(
+                    self.OPTICAL_KEYBOARD_SNAPSHOT_SIZE, len(snapshot)
+                )
+            )
+        self.write_block(self.OPTICAL_KEYBOARD_SNAPSHOT_REGISTER, bytes(snapshot))
 
     def set_boot_source(self, source):
         """Sets whether the system should boot from the RAM LUTs (0) or the Flash LUTs (1)."""

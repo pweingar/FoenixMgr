@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pyserial",
+# ]
+# ///
 import intelhex
 import wdc
 import foenix
@@ -13,6 +19,8 @@ import pgz
 import pgx
 import csv
 import zlib
+import time
+import keyboard
 
 from serial.tools import list_ports
 
@@ -91,6 +99,45 @@ def revision(port):
             exit_debug(c256)
     finally:
         c256.close()
+
+def inject_keyboard_snapshots(port, snapshots):
+    """Inject optical keyboard snapshots without stopping the running CPU."""
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        for snapshot in snapshots:
+            c256.inject_optical_keyboard_snapshot(snapshot)
+            # The microkernel consumes at most one complete snapshot per video
+            # frame. Keep a release image from replacing its press too early.
+            time.sleep(0.025)
+        if not quiet_mode:
+            print("Injected {} optical keyboard snapshots".format(len(snapshots)))
+    finally:
+        c256.close()
+
+def inject_keyboard_scan_codes(port, scan_codes):
+    """Inject raw PS/2 Set-2 bytes without stopping the running CPU."""
+    c256 = foenix.FoenixDebugPort()
+    try:
+        c256.open(port)
+        c256.inject_keyboard_scan_codes(scan_codes)
+        if not quiet_mode:
+            print("Injected {} raw PS/2 scan bytes".format(len(scan_codes)))
+    finally:
+        c256.close()
+
+def parse_scan_codes(values):
+    """Parse command-line hexadecimal scan-code bytes."""
+    scan_codes = []
+    for value in values:
+        try:
+            scan_code = int(value, 16)
+        except ValueError as error:
+            raise ValueError("invalid scan byte {!r}".format(value)) from error
+        if not 0 <= scan_code <= 0xFF:
+            raise ValueError("scan byte {!r} is outside 00-FF".format(value))
+        scan_codes.append(scan_code)
+    return scan_codes
 
 def upload_binary(port, filename, address):
     """Upload a binary file into the C256 memory."""
@@ -682,6 +729,15 @@ parser.add_argument("--stop", action="store_true", dest="stop",
 parser.add_argument("--start", action="store_true", dest="start",
                     help="Restart the CPU after a STOP (F256 only).")
 
+parser.add_argument("--key", metavar="KEY", dest="keyboard_keys", nargs="+",
+                    help="Inject named keys or single characters through the K2 optical keyboard.")
+
+parser.add_argument("--type", metavar="TEXT", dest="keyboard_text",
+                    help="Type text through the K2 optical keyboard.")
+
+parser.add_argument("--scancodes", metavar="BYTE", dest="keyboard_scan_codes", nargs="+",
+                    help="Inject raw hexadecimal PS/2 Set-2 bytes into the K2/JR2 keyboard FIFO.")
+
 parser.add_argument("--quiet", action="store_true", dest="quiet",
                     help="Suppress some printed messages.")
 
@@ -711,6 +767,29 @@ try:
         elif options.start:
             start_cpu(options.port)
             print("Starting the CPU...")
+
+        elif options.keyboard_keys:
+            try:
+                snapshots = []
+                for key_name in options.keyboard_keys:
+                    snapshots.extend(keyboard.encode_optical_key(key_name))
+            except ValueError as error:
+                parser.error(str(error))
+            inject_keyboard_snapshots(options.port, snapshots)
+
+        elif options.keyboard_text is not None:
+            try:
+                snapshots = keyboard.encode_optical_text(options.keyboard_text)
+            except ValueError as error:
+                parser.error(str(error))
+            inject_keyboard_snapshots(options.port, snapshots)
+
+        elif options.keyboard_scan_codes:
+            try:
+                scan_codes = parse_scan_codes(options.keyboard_scan_codes)
+            except ValueError as error:
+                parser.error(str(error))
+            inject_keyboard_scan_codes(options.port, scan_codes)
 
         elif options.copy_file:
             copy_file(options.port, options.copy_file)

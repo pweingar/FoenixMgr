@@ -2,6 +2,12 @@
 
 DIR=$(realpath $(dirname "$0"))
 
+# Prefer uv when available. fnxmgr.py carries its lightweight runtime
+# dependency declaration, so uv can provision and launch it directly.
+if command -v uv >/dev/null 2>&1; then
+  exec uv run "$DIR/FoenixMgr/fnxmgr.py" "$@"
+fi
+
 # Detect if python3 or python installed
 if command -v python3 >/dev/null 2>&1; then
   PYTHON_EXEC=python3
@@ -23,5 +29,5 @@ fi
 
 # Launch script in virtual environment.
 source $DIR/.venv/bin/activate
-$PYTHON_EXEC $DIR/FoenixMgr/fnxmgr.py $@
+$PYTHON_EXEC "$DIR/FoenixMgr/fnxmgr.py" "$@"
 deactivate

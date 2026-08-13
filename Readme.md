@@ -1,6 +1,6 @@
 # FoenixMgr: A command line tool for connecting to the Foenix debug port
 
-FoenixMgr can be used to send binary and Intel HEX files to the Foenix or to read memory from the board. It is a python script that uses the debug port protocol to control the Foenix remotely. Currently, the debug port supports seven actions: stop the processor, restart the processor, read memory, write memory, erase the flash memory, program the flash memory, and retrieve a version code.
+FoenixMgr can be used to send binary and Intel HEX files to the Foenix or to read memory from the board. It is a python script that uses the debug port protocol to control the Foenix remotely. K2 cores can also receive optical-keyboard input through the debug port, while both K2 and JR2 cores support raw PS/2 Set-2 insertion.
 
 ## Installation
 
@@ -42,6 +42,18 @@ To list the available serial ports on your computer:
 
 To get the revision code of the Foenix's debug port:
 `FoenixMgr/fnxmgr --port <port> --revision`
+
+On K2 FPGA cores with USB keyboard injection support, send one or more
+named keys or single characters without stopping the running CPU:
+`FoenixMgr/fnxmgr --port <port> --key run-stop`
+`FoenixMgr/fnxmgr --port <port> --key h e l p enter`
+
+To type a string through the K2 optical-keyboard matrix:
+`FoenixMgr/fnxmgr --port <port> --type "hello world"`
+
+On K2 and JR2 cores exposing the PS/2 keyboard FIFO through the debug I/O aperture, raw
+Set-2 bytes can be supplied in hexadecimal:
+`FoenixMgr/fnxmgr --port <port> --scancodes 1c f0 1c`
 
 To send a hex file:
 `FoenixMgr/fnxmgr --port <port> --upload <hexfile>`
@@ -88,7 +100,9 @@ usage: foenixmgr.zip [-h] [--port PORT] [--list-ports]
                      [--upload-wdc BINARY FILE] [--run-pgz PGZ FILE]
                      [--run-pgx PGX FILE] [--upload-srec SREC FILE]
                      [--boot STRING] [--target STRING]
-                     [--tcp-bridge HOST:PORT] [--stop] [--start] [--quiet]
+                     [--tcp-bridge HOST:PORT] [--stop] [--start]
+                     [--key KEY [KEY ...]] [--type TEXT]
+                     [--scancodes BYTE [BYTE ...]] [--quiet]
 
 Manage the C256 Foenix through its debug port.
 
@@ -134,6 +148,12 @@ optional arguments:
                         serial port
   --stop                Stop the CPU from processing instructions (F256 only).
   --start               Restart the CPU after a STOP (F256 only).
+  --key KEY [KEY ...]   Inject named keys or single characters through the K2
+                        optical keyboard.
+  --type TEXT           Type text through the K2 optical keyboard.
+  --scancodes BYTE [BYTE ...]
+                        Inject raw hexadecimal PS/2 Set-2 bytes into the K2/JR2
+                        keyboard FIFO.
   --quiet               Suppress some printed messages.
 ```
 
