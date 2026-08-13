@@ -17,8 +17,20 @@ class OpticalKeyboardEncodingTests(unittest.TestCase):
         self.assertEqual(released[2:4], bytes([0x10, 0x00]))
 
     def test_uppercase_a_adds_left_shift(self):
-        pressed, _ = keyboard.encode_optical_character("A")
-        self.assertEqual(pressed[2:4], bytes([0x10, 0x84]))
+        shift_down, key_down, key_up, shift_up = keyboard.encode_optical_character("A")
+        self.assertEqual(shift_down[2:4], bytes([0x10, 0x80]))
+        self.assertEqual(key_down[2:4], bytes([0x10, 0x84]))
+        self.assertEqual(key_up[2:4], bytes([0x10, 0x80]))
+        self.assertEqual(shift_up[2:4], bytes([0x10, 0x00]))
+
+    def test_all_uppercase_letters_sequence_shift_before_key(self):
+        for character in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+            with self.subTest(character=character):
+                snapshots = keyboard.encode_optical_character(character)
+                self.assertEqual(len(snapshots), 4)
+                self.assertEqual(snapshots[0][3], 0x80)
+                self.assertEqual(snapshots[2][3], 0x80)
+                self.assertEqual(snapshots[3][3], 0x00)
 
     def test_run_stop(self):
         pressed, _ = keyboard.encode_optical_key("run-stop")

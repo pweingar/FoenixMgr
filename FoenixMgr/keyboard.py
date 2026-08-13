@@ -56,10 +56,26 @@ def _set_optical_key(snapshot, table_index):
 
 
 def _optical_stroke(table_index, shift=False):
+    if shift:
+        shift_only = _empty_optical_snapshot()
+        _set_optical_key(shift_only, _OPTICAL_LEFT_SHIFT_INDEX)
+
+        pressed = bytearray(shift_only)
+        _set_optical_key(pressed, table_index)
+
+        # Shift shares a matrix row with E, S, Z, A, and W. The K2 firmware
+        # scans those key bits before the Shift bit when both change in one
+        # snapshot. Send the modifier transition separately, as a physical
+        # keyboard would, so every shifted key sees Shift already held.
+        return [
+            bytes(shift_only),
+            bytes(pressed),
+            bytes(shift_only),
+            bytes(_empty_optical_snapshot()),
+        ]
+
     pressed = _empty_optical_snapshot()
     _set_optical_key(pressed, table_index)
-    if shift:
-        _set_optical_key(pressed, _OPTICAL_LEFT_SHIFT_INDEX)
     return [bytes(pressed), bytes(_empty_optical_snapshot())]
 
 
