@@ -2,6 +2,7 @@
 # usage: lookup {label}
 
 if [ -z $2 ]
+then
     $FOENIXMGR/fm.sh --lookup $1
 else
     $FOENIXMGR/fm.sh --lookup $1 --count $2
